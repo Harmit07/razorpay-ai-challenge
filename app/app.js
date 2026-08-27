@@ -1,6 +1,6 @@
 /**
- * Front-end controller for Razorpay Revenue Recovery Dashboard.
- * Clean, lightweight, frictionless data presentation.
+ * Front-end controller for Razorpay AI Revenue Recovery Dashboard.
+ * Light Theme FinTech SaaS Design System.
  */
 
 let allTransactions = [];
@@ -23,7 +23,7 @@ async function loadSummaryData() {
       document.getElementById("kpi-incremental").innerText = `+₹${data.incremental_recovered_revenue_inr.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
     }
   } catch (err) {
-    console.warn("Using fallback local benchmark numbers", err);
+    console.warn("Using local benchmark fallback values", err);
   }
 }
 
@@ -44,54 +44,54 @@ function renderTransactions(txns) {
   tbody.innerHTML = "";
 
   if (txns.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 28px; color: var(--text-muted);">No matching transactions found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 32px; color: var(--text-muted);">No matching transactions found.</td></tr>`;
     return;
   }
 
-  // Display top 100 in table for fast DOM rendering
+  // Render top 100 for high-speed DOM rendering
   const displaySet = txns.slice(0, 100);
 
   displaySet.forEach((t) => {
     const tr = document.createElement("tr");
 
     // 1. Classification Column (Recoverable vs Terminal Stop vs Human Review)
-    let classBadge = `<span class="badge badge-success">Recoverable</span>`;
+    let classPill = `<span class="badge-pill pill-success"><span class="badge-dot"></span>Recoverable</span>`;
     if (t.dispute_active || t.error_reason === "mandate_cancelled_by_user" || (t.attempt_history && t.attempt_history.length >= 3)) {
-      classBadge = `<span class="badge badge-danger">Terminal Stop</span>`;
+      classPill = `<span class="badge-pill pill-error"><span class="badge-dot"></span>Terminal Stop</span>`;
     } else if (t.risk_flag || t.error_reason === "raw_unmapped_decline") {
-      classBadge = `<span class="badge badge-warning">Human Review</span>`;
+      classPill = `<span class="badge-pill pill-warning"><span class="badge-dot"></span>Human Review</span>`;
     }
 
-    // 2. Compliance State Column (Specific Statutory Boundary)
+    // 2. Compliance State Column (Specific Statutory Guard)
     const isExempt = ["mutual_fund", "insurance_premium", "credit_card_bill"].includes((t.category || "").toLowerCase()) || Boolean(t.is_afa_exempt);
     const statutoryCap = isExempt ? 100000.0 : 15000.0;
     const isRecurring = (t.txn_type || "").toLowerCase() === "recurring_subscription";
 
-    let compBadge = `<span class="badge badge-success">Clear</span>`;
+    let compPill = `<span class="badge-pill pill-neutral">Clear</span>`;
     if (t.dispute_active) {
-      compBadge = `<span class="badge badge-danger">Dispute Locked</span>`;
+      compPill = `<span class="badge-pill pill-error">Dispute Locked (CPA 2019)</span>`;
     } else if (t.error_reason === "mandate_cancelled_by_user") {
-      compBadge = `<span class="badge badge-warning">Revoked Mandate</span>`;
+      compPill = `<span class="badge-pill pill-warning">Revoked Mandate</span>`;
     } else if (t.is_dnd) {
-      compBadge = `<span class="badge badge-warning">DND Suppressed</span>`;
+      compPill = `<span class="badge-pill pill-warning">DND Suppressed</span>`;
     } else if (isRecurring && t.amount > statutoryCap) {
-      compBadge = `<span class="badge badge-shield">AFA OTP Enforced</span>`;
+      compPill = `<span class="badge-pill pill-info">AFA OTP Enforced</span>`;
     } else if (isRecurring && isExempt && t.amount > 15000 && t.amount <= 100000) {
-      compBadge = `<span class="badge badge-shield" style="background:rgba(16,185,129,0.15); color:#34d399;">AFA Exempt (₹1L Cap)</span>`;
+      compPill = `<span class="badge-pill pill-success">AFA Exempt (₹1L Cap)</span>`;
     } else if (isRecurring) {
-      compBadge = `<span class="badge badge-purple">24h Notice Queued</span>`;
+      compPill = `<span class="badge-pill pill-info">24h Notice Queued</span>`;
     }
 
-    const edgeBadge = t.edge_case_tag ? `<br><span style="font-size:10px; color:#38bdf8; font-family:var(--font-mono);">${t.edge_case_tag}</span>` : "";
+    const edgeBadge = t.edge_case_tag ? `<span class="tag-edge">${t.edge_case_tag}</span>` : "";
 
     tr.innerHTML = `
-      <td class="mono"><strong>${t.txn_id}</strong>${edgeBadge}</td>
-      <td class="mono">₹${t.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+      <td class="cell-mono"><strong>${t.txn_id}</strong>${edgeBadge}</td>
+      <td class="cell-amount">₹${t.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
       <td>${formatPaymentMethod(t.method)}</td>
-      <td><span style="font-family:var(--font-mono); font-size:11px;">${t.error_reason}</span></td>
-      <td><span style="font-size:11px; color:var(--text-muted);">${t.category}</span></td>
-      <td>${classBadge}</td>
-      <td>${compBadge}</td>
+      <td><span class="cell-mono" style="font-size:11px; color:var(--text-secondary);">${t.error_reason}</span></td>
+      <td><span style="font-size:12px; color:var(--text-secondary);">${t.category}</span></td>
+      <td>${classPill}</td>
+      <td>${compPill}</td>
       <td><button class="btn-inspect" onclick="openAuditModal('${t.txn_id}')">Inspect</button></td>
     `;
     tbody.appendChild(tr);
@@ -102,7 +102,7 @@ function formatPaymentMethod(m) {
   if (!m) return "Card";
   if (m === "upi_autopay") return "UPI AutoPay";
   if (m === "upi_collect") return "UPI Collect";
-  if (m === "card") return "Credit / Debit Card";
+  if (m === "card") return "Card";
   if (m === "nach") return "e-NACH";
   if (m === "netbanking") return "Netbanking";
   return m;
@@ -136,14 +136,14 @@ async function openAuditModal(txn_id) {
   currentViewingTxnId = txn_id;
   const modal = document.getElementById("auditModal");
   const modalBody = document.getElementById("modalBody");
-  document.getElementById("modalTxnId").innerText = `Transaction Trail: ${txn_id}`;
+  document.getElementById("modalTxnId").innerText = `Transaction Audit Trail: ${txn_id}`;
 
   const targetTxn = allTransactions.find((t) => t.txn_id === txn_id);
   if (targetTxn) {
-    document.getElementById("modalCustomer").innerText = `Customer (DPDP Masked): ${targetTxn.customer_phone_masked || targetTxn.customer_email_masked} • Amount: ₹${targetTxn.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+    document.getElementById("modalCustomer").innerText = `Customer (DPDP Masked): ${targetTxn.customer_phone_masked || targetTxn.customer_email_masked} • Amount: ₹${targetTxn.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} • ${targetTxn.category}`;
   }
 
-  modalBody.innerHTML = `<div style="text-align:center; padding: 24px; color: var(--text-muted);">Loading audit timeline...</div>`;
+  modalBody.innerHTML = `<div style="text-align:center; padding: 24px; color: var(--text-muted);">Loading audit records...</div>`;
   modal.style.display = "flex";
 
   try {
@@ -168,33 +168,34 @@ function renderAuditTimeline(records) {
   modalBody.innerHTML = "";
 
   records.forEach((r, idx) => {
-    let stateBadge = `<span class="badge badge-success">${r.to_state}</span>`;
-    if (r.to_state === "UNRECOVERABLE") stateBadge = `<span class="badge badge-danger">STOPPED</span>`;
-    if (r.to_state === "HUMAN_REVIEW" || r.to_state === "PTP_FROZEN") stateBadge = `<span class="badge badge-warning">${r.to_state}</span>`;
+    let pillClass = "pill-success";
+    if (r.to_state === "UNRECOVERABLE") pillClass = "pill-error";
+    if (r.to_state === "HUMAN_REVIEW" || r.to_state === "PTP_FROZEN") pillClass = "pill-warning";
+    if (r.to_state === "ACTION_SCHEDULED" || r.to_state === "DIAGNOSING") pillClass = "pill-info";
 
-    const card = document.createElement("div");
-    card.className = "timeline-card";
-    card.innerHTML = `
-      <div class="timeline-header">
-        <div class="timeline-step">
+    const item = document.createElement("div");
+    item.className = "timeline-item";
+    item.innerHTML = `
+      <div class="timeline-item-header">
+        <div class="timeline-step-title">
           <span>Step ${idx + 1}: ${formatEventType(r.event_type)}</span>
-          ${stateBadge}
+          <span class="badge-pill ${pillClass}"><span class="badge-dot"></span>${r.to_state}</span>
         </div>
-        <div class="timeline-time">${r.timestamp.substring(0, 19).replace("T", " ")} UTC</div>
+        <div class="timeline-timestamp">${r.timestamp.substring(0, 19).replace("T", " ")} UTC</div>
       </div>
 
-      <div class="timeline-grid">
-        <div class="timeline-field">Channel: <span>${r.channel}</span></div>
-        <div class="timeline-field">Statutory Citation: <span>${r.statutory_rule_applied}</span></div>
-        <div class="timeline-field">Policy Rule: <span>${r.internal_policy_applied}</span></div>
-        ${r.stop_rule_triggered ? `<div class="timeline-field">Stopping Rule: <span style="color:#ef4444; font-weight:700;">${r.stop_rule_triggered}</span></div>` : ""}
+      <div class="timeline-meta-grid">
+        <div class="timeline-meta-label">Channel: <span class="timeline-meta-val">${r.channel}</span></div>
+        <div class="timeline-meta-label">Statutory Citation: <span class="timeline-meta-val">${r.statutory_rule_applied}</span></div>
+        <div class="timeline-meta-label">Internal Policy: <span class="timeline-meta-val">${r.internal_policy_applied}</span></div>
+        ${r.stop_rule_triggered ? `<div class="timeline-meta-label">Stopping Rule: <span class="timeline-meta-val" style="color:var(--color-error); font-weight:600;">${r.stop_rule_triggered}</span></div>` : ""}
       </div>
 
-      <div class="timeline-rationale">
+      <div class="timeline-rationale-box">
         ${r.decision_rationale}
       </div>
     `;
-    modalBody.appendChild(card);
+    modalBody.appendChild(item);
   });
 }
 
