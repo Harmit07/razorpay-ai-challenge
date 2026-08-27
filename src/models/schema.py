@@ -147,7 +147,9 @@ class TransactionFailureEvent(BaseModel):
 
     @property
     def requires_afa_validation(self) -> bool:
-        """True if the transaction amount exceeds the statutory AFA ceiling."""
+        """True if the recurring e-mandate amount exceeds the statutory AFA ceiling."""
+        if self.txn_type != TransactionType.RECURRING_SUBSCRIPTION:
+            return False
         return self.amount > self.statutory_afa_cap
 
     @property

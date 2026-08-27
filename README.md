@@ -332,6 +332,7 @@ stateDiagram-v2
 | **[compliance-rules.md](file:///Users/harmitjetani/Documents/GitHub/razorpay-ai-challenge/compliance-rules.md)** | Comprehensive dual-layer regulatory specification (RBI 2026 E-Mandate Framework, ₹15k/₹1L AFA caps, 24h pre-debit alerts, TRAI DLT communication taxonomy, MSMED Act 45-day rule, DPDP Act 2023, 7 stopping rules, and audit schema). |
 | **[root-cause-taxonomy.md](file:///Users/harmitjetani/Documents/GitHub/razorpay-ai-challenge/root-cause-taxonomy.md)** | Razorpay 3-tier error model taxonomy (`source` / `step` / `reason`), 12 concrete error buckets, retryability rules, 10 critical production edge cases (Zombie payments, salary cycle traps, race conditions, partial payments), and Python classifier code. |
 | **[edge-cases.md](file:///Users/harmitjetani/Documents/GitHub/razorpay-ai-challenge/edge-cases.md)** | 10 mission-critical production edge cases, hazard analysis, stopping rules, and graceful failure protocols (Zombie retries, ₹15k/₹1L AFA straddles, mid-retry mandate expirations, TRAI quiet hours, PTP race conditions, MSMED 45-day clashes). |
+| **[classifier-notes.md](file:///Users/harmitjetani/Documents/GitHub/razorpay-ai-challenge/classifier-notes.md)** | Honest 50-sample classification spot-check audit log, precision metrics, fixed mismatches (B2B MSMED scoping), and risk-gating analysis. |
 | **[README.md](file:///Users/harmitjetani/Documents/GitHub/razorpay-ai-challenge/README.md)** | System architecture diagram (Mermaid.js), pipeline walkthrough, stage breakdown, and verification metrics. |
 
 ---
