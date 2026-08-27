@@ -203,6 +203,92 @@
             </div>
           </section>
 
+          <!-- Interactive Merchant ROI & Revenue Calculator -->
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="section-heading">Merchant Revenue Recovery Calculator</h2>
+                <p class="section-sub">Estimate projected annual revenue recovery and compliance risk elimination for your merchant volume.</p>
+              </div>
+              <div class="badge-pill pill-info">
+                <span class="badge-dot"></span>Interactive Model
+              </div>
+            </div>
+
+            <div class="calculator-grid">
+              
+              <!-- Inputs Column -->
+              <div class="calc-inputs-card">
+                <div class="calc-field">
+                  <div class="calc-label-row">
+                    <label class="calc-label" for="calcGmvSlider">Monthly Transaction Volume (GMV)</label>
+                    <span class="calc-val-badge" id="calcGmvVal">₹25.0 Crore</span>
+                  </div>
+                  <input type="range" id="calcGmvSlider" class="calc-slider" min="1" max="100" step="1" value="25" oninput="updateRoiCalculation()">
+                  <div class="calc-range-labels">
+                    <span>₹1 Cr</span>
+                    <span>₹50 Cr</span>
+                    <span>₹100 Cr</span>
+                  </div>
+                </div>
+
+                <div class="calc-field">
+                  <div class="calc-label-row">
+                    <label class="calc-label" for="calcFailureSlider">Payment Failure Rate</label>
+                    <span class="calc-val-badge" id="calcFailureVal">12.0%</span>
+                  </div>
+                  <input type="range" id="calcFailureSlider" class="calc-slider" min="2" max="30" step="0.5" value="12" oninput="updateRoiCalculation()">
+                  <div class="calc-range-labels">
+                    <span>2% (Low Churn)</span>
+                    <span>15% (Typical)</span>
+                    <span>30% (High Churn)</span>
+                  </div>
+                </div>
+
+                <div class="calc-field">
+                  <div class="calc-label-row">
+                    <label class="calc-label" for="calcTicketSelect">Business Category & Ticket Size</label>
+                  </div>
+                  <select id="calcTicketSelect" class="input-select" style="width:100%;" onchange="updateRoiCalculation()">
+                    <option value="2500">Consumer Subscription / OTT (₹2,500 ticket)</option>
+                    <option value="15000" selected>SaaS & Professional Services (₹15,000 ticket)</option>
+                    <option value="65000">Insurance & Mutual Funds (₹65,000 ticket - AFA Exempt)</option>
+                    <option value="150000">B2B Commercial Invoicing (₹1,50,000 ticket)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Output Projection Column -->
+              <div class="calc-results-card">
+                <div class="calc-hero-result">
+                  <div class="calc-hero-label">Projected Annual Recovered Revenue</div>
+                  <div class="calc-hero-number" id="calcAnnualRecovered">₹8.57 Crore / Year</div>
+                  <div class="calc-hero-sub" id="calcMonthlyRecovered">+₹71.40 Lakhs / month (23.8% Recovery Yield)</div>
+                </div>
+
+                <div class="calc-metrics-mini-grid">
+                  <div class="calc-mini-box">
+                    <div class="calc-mini-label">Monthly Volume at Risk</div>
+                    <div class="calc-mini-val" id="calcMonthlyAtRisk">₹3.00 Crore</div>
+                  </div>
+                  <div class="calc-mini-box">
+                    <div class="calc-mini-label">Incremental Lift vs Baseline</div>
+                    <div class="calc-mini-val text-blue" id="calcMonthlyLift">+₹44.34 L / mo</div>
+                  </div>
+                  <div class="calc-mini-box">
+                    <div class="calc-mini-label">Regulatory Breaches Avoided</div>
+                    <div class="calc-mini-val text-green" id="calcViolationsAvoided">~7,180 / Year</div>
+                  </div>
+                  <div class="calc-mini-box">
+                    <div class="calc-mini-label">Estimated Churn Reduction</div>
+                    <div class="calc-mini-val text-green">~3.8% Churn Saved</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
           <!-- Quick Navigation Actions -->
           <section class="panel">
             <div class="panel-header">

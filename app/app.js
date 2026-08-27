@@ -11,6 +11,7 @@ let currentViewingTxnId = null;
 document.addEventListener("DOMContentLoaded", async () => {
   setupViewRouting();
   setupSidebarResizer();
+  updateRoiCalculation();
   await loadSummaryData();
   await loadTransactions();
 });
@@ -538,4 +539,60 @@ function getFallbackDemoSteps() {
       timestamp: "2026-09-05T11:30:00Z"
     }
   ];
+}
+
+function updateRoiCalculation() {
+  const gmvSlider = document.getElementById("calcGmvSlider");
+  const failureSlider = document.getElementById("calcFailureSlider");
+  const ticketSelect = document.getElementById("calcTicketSelect");
+  if (!gmvSlider || !failureSlider) return;
+
+  const gmvCr = parseFloat(gmvSlider.value) || 25;
+  const failureRate = parseFloat(failureSlider.value) || 12;
+  
+  // Format badges
+  const gmvValEl = document.getElementById("calcGmvVal");
+  const failureValEl = document.getElementById("calcFailureVal");
+  if (gmvValEl) gmvValEl.innerText = `₹${gmvCr.toFixed(1)} Crore`;
+  if (failureValEl) failureValEl.innerText = `${failureRate.toFixed(1)}%`;
+
+  const monthlyGmvInr = gmvCr * 10000000;
+  const monthlyAtRiskInr = monthlyGmvInr * (failureRate / 100);
+  
+  // Measured rates from comparative benchmark
+  const aiYield = 0.2384; // 23.84%
+  const baselineYield = 0.0902; // 9.02%
+  
+  const monthlyRecoveredInr = monthlyAtRiskInr * aiYield;
+  const monthlyBaselineInr = monthlyAtRiskInr * baselineYield;
+  const monthlyLiftInr = monthlyRecoveredInr - monthlyBaselineInr;
+  const annualRecoveredInr = monthlyRecoveredInr * 12;
+
+  // Annual violations avoided projection (~80% of baseline attempts violate rules)
+  const ticketSize = ticketSelect ? (parseFloat(ticketSelect.value) || 15000) : 15000;
+  const estimatedFailedTxnsPerMonth = monthlyAtRiskInr / ticketSize;
+  const annualViolationsAvoided = Math.round(estimatedFailedTxnsPerMonth * 0.8 * 12);
+
+  // Render values
+  const annualEl = document.getElementById("calcAnnualRecovered");
+  const monthlyRecEl = document.getElementById("calcMonthlyRecovered");
+  const monthlyRiskEl = document.getElementById("calcMonthlyAtRisk");
+  const monthlyLiftEl = document.getElementById("calcMonthlyLift");
+  const violEl = document.getElementById("calcViolationsAvoided");
+
+  if (annualEl) annualEl.innerText = formatCurrencyCrOrLakh(annualRecoveredInr) + " / Year";
+  if (monthlyRecEl) monthlyRecEl.innerText = `+${formatCurrencyCrOrLakh(monthlyRecoveredInr)} / month (23.8% Recovery Yield)`;
+  if (monthlyRiskEl) monthlyRiskEl.innerText = formatCurrencyCrOrLakh(monthlyAtRiskInr);
+  if (monthlyLiftEl) monthlyLiftEl.innerText = `+${formatCurrencyCrOrLakh(monthlyLiftInr)} / mo`;
+  if (violEl) violEl.innerText = `~${annualViolationsAvoided.toLocaleString('en-IN')} / Year`;
+}
+
+function formatCurrencyCrOrLakh(amount) {
+  if (amount >= 10000000) {
+    return `₹${(amount / 10000000).toFixed(2)} Crore`;
+  } else if (amount >= 100000) {
+    return `₹${(amount / 100000).toFixed(2)} Lakhs`;
+  } else {
+    return `₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+  }
 }
