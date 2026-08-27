@@ -1,5 +1,8 @@
 import unittest
+import tempfile
+from pathlib import Path
 from src.generators.batch_generator import BatchFailureGenerator
+from src.models.schema import TransactionType
 
 
 class TestBatchGenerator(unittest.TestCase):
@@ -43,6 +46,35 @@ class TestBatchGenerator(unittest.TestCase):
         # Verify the batch contains risk-flagged cases
         risk_flagged_cases = [e for e in batch if e.risk_flag]
         self.assertGreaterEqual(len(risk_flagged_cases), 3, "Batch must contain at least 3 risk-flagged cases")
+
+    def test_large_solo_scale_batch_750(self):
+        batch = self.generator.generate_batch(count=750)
+        self.assertEqual(len(batch), 750)
+
+        summary = self.generator.print_batch_summary(batch)
+        self.assertEqual(summary["total_transactions"], 750)
+        self.assertGreater(summary["total_revenue_at_risk_inr"], 5000000.0)
+
+        # Check transaction types mix
+        types = summary["transaction_type_breakdown"]
+        self.assertIn("RECURRING_SUBSCRIPTION", types)
+        self.assertIn("CHECKOUT_DROP_OFF", types)
+        self.assertIn("B2B_INVOICE", types)
+        self.assertGreater(types["RECURRING_SUBSCRIPTION"], 300)
+        self.assertGreater(types["CHECKOUT_DROP_OFF"], 50)
+        self.assertGreater(types["B2B_INVOICE"], 20)
+
+    def test_export_and_load_json(self):
+        batch = self.generator.generate_batch(count=20)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_path = Path(tmpdir) / "test_batch.json"
+            self.generator.export_to_json(batch, file_path)
+            self.assertTrue(file_path.exists())
+
+            loaded_batch = self.generator.load_from_json(file_path)
+            self.assertEqual(len(loaded_batch), 20)
+            self.assertEqual(loaded_batch[0].txn_id, batch[0].txn_id)
+            self.assertEqual(loaded_batch[0].amount, batch[0].amount)
 
     def test_reproducibility_with_seed(self):
         gen1 = BatchFailureGenerator(seed=999)
