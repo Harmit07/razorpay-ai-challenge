@@ -5,7 +5,6 @@
 [![Cryptographic Ledger](https://img.shields.io/badge/Audit%20Ledger-SHA--256%20Chained%20(2%2C548%20Blocks)-blue.svg)](file:///Users/harmitjetani/Documents/GitHub/razorpay-ai-challenge/data/full_batch_audit_trail.json)
 [![Regulatory Compliance](https://img.shields.io/badge/Compliance-100%25%20Statutory%20Safe%20(0%20Violations)-success.svg)](file:///Users/harmitjetani/Documents/GitHub/razorpay-ai-challenge/compliance-rules.md)
 [![Measured Recovery Lift](https://img.shields.io/badge/Measured%20Lift-%2B164.2%25%20vs%20Baseline-success.svg)](file:///Users/harmitjetani/Documents/GitHub/razorpay-ai-challenge/data/comparative_benchmark_results.json)
-[![Dashboard](https://img.shields.io/badge/Dashboard-Live%20on%20Port%208888-orange.svg)](http://localhost:8888)
 
 ---
 
