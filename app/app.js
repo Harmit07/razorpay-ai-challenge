@@ -103,7 +103,10 @@ function filterTransactions() {
   renderTransactions(filtered);
 }
 
+let currentViewingTxnId = null;
+
 async function openAuditModal(txn_id) {
+  currentViewingTxnId = txn_id;
   const modal = document.getElementById("auditModal");
   const modalBody = document.getElementById("modalBody");
   document.getElementById("modalTxnId").innerText = `Audit Log Trail: ${txn_id}`;
@@ -131,6 +134,20 @@ async function openAuditModal(txn_id) {
     }
   } catch (e) {
     renderSyntheticTimeline(targetTxn);
+  }
+}
+
+function exportFullAuditJson() {
+  window.open("/api/export/full-json", "_blank");
+}
+
+function exportFullAuditMd() {
+  window.open("/api/export/full-md", "_blank");
+}
+
+function exportCurrentTxnAudit() {
+  if (currentViewingTxnId) {
+    window.open(`/api/export/txn-json/${currentViewingTxnId}`, "_blank");
   }
 }
 

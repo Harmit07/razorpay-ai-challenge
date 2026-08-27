@@ -35,6 +35,23 @@ class RecoveryDashboardHandler(SimpleHTTPRequestHandler):
         elif self.path == "/api/benchmark":
             self.send_json_response(self.get_benchmark_data())
             return
+        elif self.path == "/api/export/full-json":
+            self.send_file_download(DATA_DIR / "full_batch_audit_trail.json", "full_batch_audit_trail.json", "application/json")
+            return
+        elif self.path == "/api/export/full-md":
+            self.send_file_download(DATA_DIR / "full_batch_audit_report.md", "full_batch_audit_report.md", "text/markdown")
+            return
+        elif self.path.startswith("/api/export/txn-json/"):
+            txn_id = self.path.split("/api/export/txn-json/")[1]
+            records = self.get_audit_for_txn(txn_id)
+            body = json.dumps(records, indent=2).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Disposition", f'attachment; filename="audit_trail_{txn_id}.json"')
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
 
         # Default static file serving
         super().do_GET()
@@ -47,6 +64,19 @@ class RecoveryDashboardHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def send_file_download(self, file_path: Path, download_filename: str, content_type: str):
+        if not file_path.exists():
+            self.send_error(404, "File not found")
+            return
+        with open(file_path, "rb") as f:
+            content = f.read()
+        self.send_response(200)
+        self.send_header("Content-Type", f"{content_type}; charset=utf-8")
+        self.send_header("Content-Disposition", f'attachment; filename="{download_filename}"')
+        self.send_header("Content-Length", str(len(content)))
+        self.end_headers()
+        self.wfile.write(content)
 
     def get_summary_data(self) -> Dict[str, Any]:
         benchmark_file = DATA_DIR / "comparative_benchmark_results.json"

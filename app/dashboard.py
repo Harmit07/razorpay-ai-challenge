@@ -160,6 +160,19 @@ elif view_mode == "🔍 Per-Transaction Audit Viewer":
         )
 
         st.markdown("---")
+        
+        # Global & Per-Transaction Export buttons
+        exp_col1, exp_col2 = st.columns([1, 1])
+        with exp_col1:
+            full_json_str = json.dumps(audit, indent=2)
+            st.download_button(
+                label="📥 Export Full Audit Log (JSON)",
+                data=full_json_str,
+                file_name="full_batch_audit_trail.json",
+                mime="application/json",
+            )
+        
+        st.markdown("---")
         st.subheader("📜 Inspect Transaction Audit Trail")
         selected_txn = st.selectbox("Select Transaction to Inspect", filtered_df["txn_id"].tolist())
 
@@ -168,6 +181,13 @@ elif view_mode == "🔍 Per-Transaction Audit Viewer":
             if not txn_audit:
                 st.info(f"No state transitions recorded for {selected_txn} (or clean stopping rule halt).")
             else:
+                txn_json_str = json.dumps(txn_audit, indent=2)
+                st.download_button(
+                    label=f"📥 Export Audit Log for {selected_txn} (JSON)",
+                    data=txn_json_str,
+                    file_name=f"audit_trail_{selected_txn}.json",
+                    mime="application/json",
+                )
                 for idx, record in enumerate(txn_audit):
                     with st.expander(f"Step {idx+1}: {record.get('from_state')} ➔ {record.get('to_state')} ({record.get('event_type')})", expanded=True):
                         st.markdown(f"**Timestamp (UTC):** `{record.get('timestamp')}`")

@@ -138,6 +138,18 @@ body {
   box-shadow: 0 6px 18px rgba(37, 99, 235, 0.5);
 }
 
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
 /* KPI Cards Grid */
 .kpi-grid {
   display: grid;

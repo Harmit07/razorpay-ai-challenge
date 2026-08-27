@@ -20,6 +20,8 @@
       </div>
       <div class="nav-actions">
         <span class="live-pill"><span class="pulse-dot"></span> SIMULATED CLOCK ACTIVE</span>
+        <button class="btn btn-secondary" onclick="exportFullAuditJson()">📥 Export JSON Audit</button>
+        <button class="btn btn-secondary" onclick="exportFullAuditMd()">📄 Export MD Report</button>
         <button class="btn btn-primary" onclick="runDemoSimulation()">▶ Run Live Demo</button>
       </div>
     </header>
@@ -182,7 +184,10 @@
             <h3 id="modalTxnId">Audit Log: pay_xxxx</h3>
             <span class="modal-sub" id="modalCustomer">Customer Masked: +91-98******0000</span>
           </div>
-          <button class="btn-close" onclick="closeModal()">&times;</button>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <button class="btn btn-secondary" id="modalExportBtn" onclick="exportCurrentTxnAudit()">📥 Export Txn Log</button>
+            <button class="btn-close" onclick="closeModal()">&times;</button>
+          </div>
         </div>
         <div class="modal-body" id="modalBody">
           <!-- Timeline will be rendered here -->
