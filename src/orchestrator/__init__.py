@@ -5,6 +5,10 @@ from src.orchestrator.state_machine import (
     StateTransitionRecord,
     AuditLogEntry,
 )
+from src.orchestrator.batch_pipeline import (
+    BatchRecoveryPipeline,
+    BatchSimulationResults,
+)
 
 __all__ = [
     "TransactionLifecycleFSM",
@@ -12,4 +16,6 @@ __all__ = [
     "InvalidStateTransitionError",
     "StateTransitionRecord",
     "AuditLogEntry",
+    "BatchRecoveryPipeline",
+    "BatchSimulationResults",
 ]
