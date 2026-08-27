@@ -94,41 +94,41 @@ flowchart TD
     W3 --> PARSE
 
     PARSE --> TRIAGE
-    TRIAGE -->|Deterministic Conf >= 0.85 & Soft| SOFT
-    TRIAGE -->|Deterministic Conf >= 0.85 & Hard| HARD
-    TRIAGE -->|Deterministic Drop-off / Invoice| DROP
-    TRIAGE -->|Ambiguous / Unmapped| LLM_PARSER
+    TRIAGE -->|"Deterministic Conf >= 0.85 & Soft"| SOFT
+    TRIAGE -->|"Deterministic Conf >= 0.85 & Hard"| HARD
+    TRIAGE -->|"Deterministic Drop-off / Invoice"| DROP
+    TRIAGE -->|"Ambiguous / Unmapped"| LLM_PARSER
     
-    LLM_PARSER -->|Resolved Soft (Conf >= 0.70)| SOFT
-    LLM_PARSER -->|Resolved Hard (Conf >= 0.70)| HARD
-    LLM_PARSER -->|Resolved Drop-off / Invoice (Conf >= 0.70)| DROP
-    LLM_PARSER -->|Unresolved / Low Conf < 0.70 / Fraud Flag| HUMAN_ESC
+    LLM_PARSER -->|"Resolved Soft (Conf >= 0.70)"| SOFT
+    LLM_PARSER -->|"Resolved Hard (Conf >= 0.70)"| HARD
+    LLM_PARSER -->|"Resolved Drop-off / Invoice (Conf >= 0.70)"| DROP
+    LLM_PARSER -->|"Unresolved / Low Conf < 0.70 / Fraud Flag"| HUMAN_ESC
     
     HUMAN_ESC --> HUMAN_DECISION
-    HUMAN_DECISION -->|Approved / Overridden| STOP
-    HUMAN_DECISION -->|Rejected / Blocked| STOPS_TRIGGERED
+    HUMAN_DECISION -->|"Approved / Overridden"| STOP
+    HUMAN_DECISION -->|"Rejected / Blocked"| STOPS_TRIGGERED
     HUMAN_DECISION --> AUDIT_ENGINE
 
     SOFT --> STOP
     HARD --> STOP
     DROP --> STOP
 
-    STOP -->|Boundary Hit| STOPS_TRIGGERED
-    STOP -->|Active Case| STAT_CHECK
+    STOP -->|"Boundary Hit"| STOPS_TRIGGERED
+    STOP -->|"Active Case"| STAT_CHECK
 
     STAT_CHECK --> AFA_CAP
     STAT_CHECK --> COMM_CLASS
 
-    AFA_CAP -->|Amount <= Cap: afa_status = NOT_REQUIRED| COMM_CLASS
-    AFA_CAP -->|Amount > Cap: afa_status = AFA_REQUIRED| COMM_CLASS
+    AFA_CAP -->|"Amount <= Cap: afa_status = NOT_REQUIRED"| COMM_CLASS
+    AFA_CAP -->|"Amount > Cap: afa_status = AFA_REQUIRED"| COMM_CLASS
 
     COMM_CLASS --> TIME_FILTER
-    TIME_FILTER -->|Outside 08:00-20:00| QUIET_QUEUE
-    TIME_FILTER -->|Inside 08:00-20:00 & Retryable| EXEC_RETRY
-    TIME_FILTER -->|Inside 08:00-20:00 & Non-Retryable/AFA| EXEC_INSTRUMENT_LINK
-    TIME_FILTER -->|Inside 08:00-20:00 & Drop-off/Voice| EXEC_CHANNELS
+    TIME_FILTER -->|"Outside 08:00-20:00"| QUIET_QUEUE
+    TIME_FILTER -->|"Inside 08:00-20:00 & Retryable"| EXEC_RETRY
+    TIME_FILTER -->|"Inside 08:00-20:00 & Non-Retryable/AFA"| EXEC_INSTRUMENT_LINK
+    TIME_FILTER -->|"Inside 08:00-20:00 & Drop-off/Voice"| EXEC_CHANNELS
     
-    QUIET_QUEUE -->|At 08:05 AM IST| TIME_FILTER
+    QUIET_QUEUE -->|"At 08:05 AM IST"| TIME_FILTER
 
     EXEC_RETRY --> AUDIT_ENGINE
     EXEC_INSTRUMENT_LINK --> AUDIT_ENGINE
@@ -141,9 +141,9 @@ flowchart TD
     
     %% DOUBLE-DEBIT PREVENTION FEEDBACK LOOP
     SETTLE_EVENT --> STOP
-    EXEC_CHANNELS -.->|Payment Completed| SETTLE_EVENT
-    EXEC_RETRY -.->|Debit Succeeded| SETTLE_EVENT
-    EXEC_INSTRUMENT_LINK -.->|OTP Verified / Instrument Updated| SETTLE_EVENT
+    EXEC_CHANNELS -.->|"Payment Completed"| SETTLE_EVENT
+    EXEC_RETRY -.->|"Debit Succeeded"| SETTLE_EVENT
+    EXEC_INSTRUMENT_LINK -.->|"OTP Verified / Instrument Updated"| SETTLE_EVENT
     SETTLE_EVENT --> KPI_METRICS
 ```
 
