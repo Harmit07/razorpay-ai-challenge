@@ -14,15 +14,15 @@ In Indian subscription commerce, **up to 15–25% of recurring payments fail** d
 
 This naive approach creates two fatal problems:
 1. **Lost Revenue**: High churn from retrying at the wrong time (e.g. before month-end salary credit).
-2. **Severe Regulatory Fines**: Violates [**RBI 2026 E-Mandate rules**](#rule-1-rbi-2026-e-mandate) (lack of 24h pre-debit notices, bypassing [₹15,000 / ₹1,00,000 AFA caps](#rule-2-statutory-afa-caps)), [**TRAI DND/Quiet Hours**](#rule-3-trai-quiet-hours) (calling customers at night), and [**Consumer Protection Act (CPA 2019)**](#rule-4-cpa-2019-dispute-lock) (dunning users with active fraud disputes).
+2. **Severe Regulatory Fines**: Violates [**RBI 2026 E-Mandate rules**](#rule-1-rbi-2026-e-mandate) (lack of 24h pre-debit notices, bypassing [₹15,000 / ₹1,00,000 AFA caps](#rule-2-statutory-afa-caps)), [**TRAI DND/Quiet Hours**](#rule-4-trai-quiet-hours) (calling customers at night), and [**Consumer Protection Act (CPA 2019)**](#rule-5-cpa-2019-dispute-lock) (dunning users with active fraud disputes).
 
 ### The Solution: Autonomous AI Revenue Recovery Agent
 Our platform acts as a **smart, statutory-compliant revenue recovery orchestrator**:
 * **Diagnoses Root Cause**: Two-tier classifier mapping failure codes (Razorpay source/step/reason model) + local semantic intent engine for ambiguous bank text.
 * **Mathematical Expected Value (EV) Policy**: Intervenes only when $\text{EV} = (p_{\text{recover}} \times \text{Amount}) - \text{Channel Cost} - \text{Annoyance Penalty} > 0$.
-* **Dual-Layer Statutory Invariants**: Programmatically guarantees 100% compliance with [RBI](#rule-1-rbi-2026-e-mandate), [TRAI](#rule-3-trai-quiet-hours), [CPA 2019](#rule-4-cpa-2019-dispute-lock), and [DPDP Act 2023](#rule-5-dpdp-act-2023).
-* **Multi-Rail Smart Recovery**: Coordinates 48h cooling intervals, salary-cycle snapping (1st–5th / 25th–30th), dynamic AFA OTP payment links, WhatsApp 1-click UPI intent, and empathetic Hinglish voice recovery bots with Promise-to-Pay (PTP) freezing.
-* **Blockchain-Grade Cryptographic Audit Ledger**: Every decision produces a tamper-evident, SHA-256 hash-chained audit record.
+* **Dual-Layer Statutory Invariants**: Programmatically guarantees 100% compliance with [RBI](#rule-1-rbi-2026-e-mandate), [TRAI](#rule-4-trai-quiet-hours), [CPA 2019](#rule-5-cpa-2019-dispute-lock), and [DPDP Act 2023](#rule-7-dpdp-act-2023).
+* **Multi-Rail Smart Recovery**: Coordinates 48h cooling intervals, salary-cycle snapping (1st–5th / 25th–30th), dynamic AFA OTP payment links, WhatsApp 1-click UPI intent, and empathetic Hinglish voice recovery bots with [Promise-to-Pay (PTP) freezing](#rule-6-ptp-grace-window).
+* **Blockchain-Grade Cryptographic Audit Ledger**: Every decision produces a tamper-evident, [SHA-256 hash-chained audit record](#rule-9-cryptographic-audit-ledger).
 
 ---
 
@@ -57,11 +57,11 @@ Evaluated across the exact same deterministic dataset of **750 payment failures*
 | **Statutory Violations Committed** | **599 Violations ⚠️** *(Severe Fine Risk)* | **0 Violations 🛡️** *(100% Invariant Safe)* | **100% Compliance Risk Elimination** |
 | **[RBI ≥ 24h Pre-Debit Notices](#rule-1-rbi-2026-e-mandate)** | 0 sent (100% Non-Compliant) | **424 Dispatched Compliantly** | Full Statutory Notice Window Met |
 | **[AFA Limit Respect (>₹15k / >₹1L)](#rule-2-statutory-afa-caps)** | 0 checked (Illegal debits attempted) | **114 Dynamic AFA Links Routed** | Zero Unauthorized Auto-Debits |
-| **[Revoked Mandates Halted](#rule-1-rbi-2026-e-mandate)** | 0 halted (Harassed cancelled users) | **32 Instantly Quarantined** | Zero Cancelled Mandate Debits |
-| **[TRAI Quiet Hours Suppressed](#rule-3-trai-quiet-hours)** | 0 delayed (Violated night rules) | **42 DND / Quiet Numbers Held** | Zero TRAI UCC/DND Breaches |
-| **[Active Dispute / Fraud Freezes](#rule-4-cpa-2019-dispute-lock)** | 0 frozen (Dunning continued on fraud) | **20 Immediate Freezes Enforced** | Full CPA 2019 Anti-Harassment Safety |
-| **Promise-to-Pay (PTP) Honored** | 0 honored (Interrupted promise) | **33 Accounts Frozen in Grace Window** | Maximum Customer Goodwill & Trust |
-| **[Tamper-Evident Ledger Integrity](#rule-7-cryptographic-audit-ledger)** | None (Unverifiable logs) | **2,548 SHA-256 Chained Blocks** | Verified Blockchain-Grade Auditability |
+| **[Revoked Mandates Halted](#rule-3-revoked-mandates-halted)** | 0 halted (Harassed cancelled users) | **32 Instantly Quarantined** | Zero Cancelled Mandate Debits |
+| **[TRAI Quiet Hours Suppressed](#rule-4-trai-quiet-hours)** | 0 delayed (Violated night rules) | **42 DND / Quiet Numbers Held** | Zero TRAI UCC/DND Breaches |
+| **[Active Dispute / Fraud Freezes](#rule-5-cpa-2019-dispute-lock)** | 0 frozen (Dunning continued on fraud) | **20 Immediate Freezes Enforced** | Full CPA 2019 Anti-Harassment Safety |
+| **[Promise-to-Pay (PTP) Honored](#rule-6-ptp-grace-window)** | 0 honored (Interrupted promise) | **33 Accounts Frozen in Grace Window** | Maximum Customer Goodwill & Trust |
+| **[Tamper-Evident Ledger Integrity](#rule-9-cryptographic-audit-ledger)** | None (Unverifiable logs) | **2,548 SHA-256 Chained Blocks** | Verified Blockchain-Grade Auditability |
 
 ---
 
@@ -204,40 +204,50 @@ stateDiagram-v2
 
 ## 📜 Core Compliance Rules & Indian Regulatory Guardrails
 
-To win revenue back without causing regulatory fines, merchant churn, or harassment complaints, the agent strictly enforces 6 non-negotiable Indian statutory frameworks:
+To win revenue back without causing regulatory fines, merchant churn, or harassment complaints, the agent strictly enforces 9 non-negotiable statutory & architectural guardrails:
 
 <a id="rule-1-rbi-2026-e-mandate"></a>
-### 1. 📋 RBI 2026 E-Mandate Framework (`RBI/DPSS/2026-27/396`) — $\ge 24\text{h}$ Pre-Debit Notice & Revocation Rights
-* **What the law mandates**: Merchants must dispatch an explicit pre-debit alert to the customer at least 24 hours prior to every automated recurring charge, with the exact amount, merchant name, and a 1-click facility to cancel or opt out.
-* **What our agent enforces**: The scheduler automatically queues a WhatsApp/SMS alert and guarantees $\ge 24\text{h}$ has elapsed before executing any automated recurring debit. If the customer revokes the mandate, all retries are instantly frozen (`STOP_MANDATE_REVOKED`).
+### 1. 📋 RBI 2026 E-Mandate Framework (`RBI/DPSS/2026-27/396`) — $\ge 24\text{h}$ Pre-Debit Notice
+* **What the law mandates**: Merchants must dispatch an explicit pre-debit alert to the customer at least 24 hours prior to every automated recurring charge, with the exact amount, merchant name, and an opt-out link.
+* **What our agent enforces**: The scheduler automatically queues a WhatsApp/SMS alert and guarantees $\ge 24\text{h}$ has elapsed before executing any automated recurring debit.
 
 <a id="rule-2-statutory-afa-caps"></a>
 ### 2. 💳 Statutory AFA Limit Caps (₹15,000 Standard / ₹1,00,000 Exempt Categories)
 * **What the law mandates**: Auto-debit without OTP (AFA) is capped at ₹15,000 per cycle. A relaxed ceiling of ₹1,00,000 is allowed strictly for Mutual Funds (SIPs), Insurance Premiums, and Credit Card bills.
 * **What our agent enforces**: Any transaction exceeding its statutory ceiling (e.g. ₹15,001 for OTT or ₹1,00,001 for SIPs) is programmatically blocked from direct auto-debit and converted into a dynamic AFA OTP checkout link.
 
-<a id="rule-3-trai-quiet-hours"></a>
-### 3. 🌙 TRAI Telecom Commercial Communications Regulations (TCCCPR 2018) — Safe Contact Hours & DND
+<a id="rule-3-revoked-mandates-halted"></a>
+### 3. 🚫 Customer Mandate Revocation Invariant (Instant Dunning Freeze)
+* **What the law mandates**: Under RBI e-mandate guidelines, customers hold the legal right to cancel or revoke payment mandates via their issuing bank or merchant portal at any time. Debiting a revoked mandate is illegal.
+* **What our agent enforces**: Webhooks or decline events signaling mandate cancellation immediately trigger Guard 2 (`STOP_MANDATE_REVOKED`), permanently purging all pending retries.
+
+<a id="rule-4-trai-quiet-hours"></a>
+### 4. 🌙 TRAI Telecom Commercial Communications Regulations (TCCCPR 2018) — Safe Contact Hours & DND
 * **What the law mandates**: Commercial calls and dunning outreach are strictly prohibited during night quiet hours (08:00 PM to 08:00 AM IST) and to customers registered on the National DND Registry for marketing.
 * **What our agent enforces**: Failures occurring at night are held in the Delayed Dispatch Queue for 08:30 AM release; all customer recovery messages use whitelisted DLT `SERVICE_IMPLICIT` streams.
 
-<a id="rule-4-cpa-2019-dispute-lock"></a>
-### 4. 🛑 Consumer Protection Act (CPA 2019) & CCPA Guidelines 2023 — Anti-Harassment & Dispute Lock
+<a id="rule-5-cpa-2019-dispute-lock"></a>
+### 5. 🛑 Consumer Protection Act (CPA 2019) & CCPA Guidelines 2023 — Anti-Harassment & Dispute Lock
 * **What the law mandates**: Repeated debit attempts or dunning communications while an active fraud dispute or chargeback is open constitute illegal harassment and unfair trade practices.
 * **What our agent enforces**: When `dispute_active=True`, Guard 1 instantly freezes all dunning (`STOP_DISPUTE_FRAUD`), prevents further retries, and escalates the transaction for human review.
 
-<a id="rule-5-dpdp-act-2023"></a>
-### 5. 🔒 DPDP Act 2023 (Digital Personal Data Protection) — Complete PII Redaction
+<a id="rule-6-ptp-grace-window"></a>
+### 6. 🤝 Promise-to-Pay (PTP) Grace Window & Dunning Freeze Policy
+* **What the operational standard mandates**: When a customer commits to pay by a specific date (e.g. during an empathetic voice bot call), further automated retries or dunning messages within that window breach customer trust.
+* **What our agent enforces**: The engine transitions the transaction to `PTP_FROZEN`, halts all outreach, and sets a wake-up trigger 24 hours after the agreed date.
+
+<a id="rule-7-dpdp-act-2023"></a>
+### 7. 🔒 DPDP Act 2023 (Digital Personal Data Protection) — Complete PII Redaction
 * **What the law mandates**: Customer Personally Identifiable Information (PII) must be protected, masked, and never exposed in plaintext across operational logs, telemetry, or third-party LLMs.
 * **What our agent enforces**: All phone numbers (`+91-9876****4321`) and emails (`r****y@example.com`) are permanently redacted across runtime logs, JSON exports, and UI dashboards.
 
-<a id="rule-6-msmed-act-2006"></a>
-### 6. ⏱️ MSMED Act 2006 (Sections 15 & 16) — 45-Day B2B Payment Boundaries
+<a id="rule-8-msmed-act-2006"></a>
+### 8. ⏱️ MSMED Act 2006 (Sections 15 & 16) — 45-Day B2B Payment Boundaries
 * **What the law mandates**: Invoices from Micro and Small Enterprises must be settled within agreed periods not exceeding 45 days, after which penal compound interest applies.
 * **What our agent enforces**: Overdue commercial invoices approaching 45 days bypass standard automated reminders and are immediately escalated to merchant finance operations.
 
-<a id="rule-7-cryptographic-audit-ledger"></a>
-### 7. 🛡️ Cryptographic SHA-256 Audit Trail & Ledger Integrity (Section 10 Standard)
+<a id="rule-9-cryptographic-audit-ledger"></a>
+### 9. 🛡️ Cryptographic SHA-256 Audit Trail & Ledger Integrity (Section 10 Standard)
 * **What the engineering & audit standard mandates**: Every state transition must produce an immutable record linking back to the previous block's SHA-256 hash ($\text{SHA-256}(\text{prev\_hash} \parallel \text{event\_data})$) to guarantee zero post-hoc log tampering.
 * **What our agent enforces**: All 2,548 transition events across the batch simulation form a verifiable cryptographic chain from genesis block `0000...0000` to the final settlement, with automated integrity verification on every audit export.
 
@@ -251,10 +261,10 @@ Inside the web dashboard, users can interact with the **Live Chaos Sandbox** to 
    * Simulates core banking downtime (`bank_server_down`).
    * *Engine Adaptation*: Prohibits immediate retries, schedules 48h cooling interval, and sends an alternate 1-click WhatsApp UPI intent checkout link.
    * *Expected Value*: Net $\text{EV} = +₹6,374.35$.
-2. **🛑 Inject Active Fraud Dispute ([CPA 2019](#rule-4-cpa-2019-dispute-lock))**:
+2. **🛑 Inject Active Fraud Dispute ([CPA 2019](#rule-5-cpa-2019-dispute-lock))**:
    * Simulates a chargeback dispute filed with the issuing bank (`dispute_active=True`).
    * *Engine Refusal*: Guard 1 enforces permanent quarantine (`STOP_DISPUTE_FRAUD`) $\rightarrow$ transitions immediately to `UNRECOVERABLE`. Zero customer touches sent.
-3. **🌙 Inject TRAI Night Hours ([TRAI TCCCPR 2018](#rule-3-trai-quiet-hours))**:
+3. **🌙 Inject TRAI Night Hours ([TRAI TCCCPR 2018](#rule-4-trai-quiet-hours))**:
    * Simulates a payment failure occurring at 11:30 PM.
    * *Engine Refusal*: Prohibits immediate notification dispatch; holds message in Delayed Queue for 9.0 hours and releases at 08:30 AM IST.
 
@@ -283,11 +293,11 @@ Every regulatory guardrail is verified by dedicated automated tests that assert 
 | **`EDGE-02`** | [₹15,001 Standard AFA Cap](#rule-2-statutory-afa-caps) | Direct auto-debit $> ₹15,000$ prohibited ([RBI DPSS 2026](#rule-2-statutory-afa-caps)). | **BLOCKED:** Auto-debit refused; dynamic AFA OTP payment link dispatched. |
 | **`EDGE-03`** | [₹1,00,001 Exemption Straddle](#rule-2-statutory-afa-caps) | Mutual Funds / Insurance relaxed cap is ₹1,00,000. | **BLOCKED:** ₹1,00,001 auto-debit refused; converted to dynamic AFA OTP checkout link. |
 | **`EDGE-04`** | [Mandate Expiring in 24h](#rule-1-rbi-2026-e-mandate) | Mandate expires before cooling + retry window. | **BLOCKED:** Refuses auto-debit; dispatches instrument renewal link. |
-| **`EDGE-05`** | [TRAI Quiet Hours Violation](#rule-3-trai-quiet-hours) | Outbound customer touch at 11:30 PM IST. | **BLOCKED:** Instant send blocked; queued for release at 08:30 AM IST next morning. |
-| **`EDGE-06`** | Promise-to-Pay (PTP) Grace Window | Customer committed to pay on Sept 5th. | **FROZEN:** Dunning touches quarantined in `PTP_FROZEN` state until Sept 6th. |
-| **`EDGE-07`** | [Revoked Mandate Debit](#rule-1-rbi-2026-e-mandate) | Customer cancelled mandate via bank portal. | **BLOCKED:** Permanent freeze (`STOP_MANDATE_REVOKED`); zero touches dispatched. |
-| **`EDGE-08`** | [Active Fraud Dispute / Chargeback](#rule-4-cpa-2019-dispute-lock) | Customer filed fraud dispute with issuing bank. | **BLOCKED:** Quarantined under CPA 2019 (`STOP_DISPUTE_FRAUD`); retries stopped. |
-| **`EDGE-09`** | [B2B MSMED 45-Day Boundary](#rule-6-msmed-act-2006) | Commercial invoice overdue approaching 45 days. | **ESCALATED:** Standard dunning halted; escalated directly to finance operations. |
+| **`EDGE-05`** | [TRAI Quiet Hours Violation](#rule-4-trai-quiet-hours) | Outbound customer touch at 11:30 PM IST. | **BLOCKED:** Instant send blocked; queued for release at 08:30 AM IST next morning. |
+| **`EDGE-06`** | [Promise-to-Pay (PTP) Grace Window](#rule-6-ptp-grace-window) | Customer committed to pay on Sept 5th. | **FROZEN:** Dunning touches quarantined in `PTP_FROZEN` state until Sept 6th. |
+| **`EDGE-07`** | [Revoked Mandate Debit](#rule-3-revoked-mandates-halted) | Customer cancelled mandate via bank portal. | **BLOCKED:** Permanent freeze (`STOP_MANDATE_REVOKED`); zero touches dispatched. |
+| **`EDGE-08`** | [Active Fraud Dispute / Chargeback](#rule-5-cpa-2019-dispute-lock) | Customer filed fraud dispute with issuing bank. | **BLOCKED:** Quarantined under CPA 2019 (`STOP_DISPUTE_FRAUD`); retries stopped. |
+| **`EDGE-09`** | [B2B MSMED 45-Day Boundary](#rule-8-msmed-act-2006) | Commercial invoice overdue approaching 45 days. | **ESCALATED:** Standard dunning halted; escalated directly to finance operations. |
 | **`EDGE-10`** | Raw Ambiguous Decline String | Bank returns unmapped unstructured string. | **DISAMBIGUATED:** Resolved via semantic engine without blocking merchant flow. |
 
 ---
