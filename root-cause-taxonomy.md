@@ -203,10 +203,123 @@ The AI Revenue Recovery Agent ingests these error objects to deterministically d
 
 ---
 
-## 4. Integration Code Snippet (Python Engine Classifier)
+## 4. Critical Real-World Edge Cases & Production Protocols
+
+Fintech systems face subtle race conditions and statutory boundary clashes. The agent handles these **10 critical edge cases**:
+
+---
+
+### Edge Case 1: The "Zombie" Payment (Network Timeout with Unknown Debit State)
+* **The Problem:** Razorpay returns `gateway_timeout` or socket hangup. The bank may have actually debited the customer's account.
+* **Double-Debit Hazard:** Blindly re-firing the debit will double-charge the customer.
+* **Production Protocol:**
+  1. Mark transaction state as `PENDING_SETTLEMENT_VERIFICATION`.
+  2. Schedule idempotent polling via Razorpay `GET /v1/payments/{payment_id}` at $T+5\text{m}$ and $T+15\text{m}$.
+  3. If status returns `captured` $\rightarrow$ Trigger **`STOP_PAID`** and dispatch confirmation with grievance details.
+  4. If status returns `failed` $\rightarrow$ Re-queue for standard retry after cooling window.
+
+---
+
+### Edge Case 2: The Salary-Cycle Trap (Premature Retry Exhaustion)
+* **The Problem:** A recurring subscription fails on the 21st of the month due to `insufficient_funds`.
+* **Premature Cancellation Hazard:** If the agent fires retries on the 23rd, 25th, and 27th, it hits `STOP_MAX_RETRIES` (3 attempts) **before** the customer receives their monthly salary on the 30th/1st.
+* **Production Protocol:**
+  1. Detect failure date relative to the standard salary cycle (1st–5th or 25th–30th).
+  2. Space the 3 retry attempts strategically:
+     * Retry #1: $T+3$ days (short-term liquidity buffer).
+     * Retry #2: $T+7$ days (mid-cycle buffer).
+     * Retry #3: Snapped to the 1st of next month (salary credit window).
+  3. Always dispatch a $\ge 24\text{h}$ pre-debit alert before each retry.
+
+---
+
+### Edge Case 3: Race Condition — Payment via Link while Auto-Debit Retry is Queued
+* **The Problem:** Auto-debit failed on Monday. The agent dispatched a WhatsApp payment link and queued an auto-debit retry for Thursday. On Wednesday night, the customer clicks the link and pays.
+* **Double-Debit Hazard:** If the Thursday cron job fires, the customer is debited a second time.
+* **Production Protocol:**
+  1. Webhook listener receives `payment.captured` for the entity ID.
+  2. Atomically trigger **`STOP_PAID`**.
+  3. Purge all pending cron/delayed retry tasks in Redis/Postgres for that `subscription_id` / `invoice_id`.
+
+---
+
+### Edge Case 4: Promise-to-Pay (PTP) vs. MSMED 45-Day Statutory Deadline
+* **The Problem:** A commercial debtor tells the Hinglish voice bot: *"I will clear this invoice in 60 days"*, but the supplier is an MSE covered under Section 15 of MSMED Act (45-day statutory ceiling).
+* **Statutory Clashing Hazard:** A verbal PTP cannot illegally extend statutory limits without penal interest consequences.
+* **Production Protocol:**
+  1. Voice bot parser detects the promised date exceeds the statutory 45-day cap.
+  2. Agent dynamically informs the debtor: *"We have noted your date, but please be aware that under MSMED guidelines, invoices past 45 days accrue statutory compound interest."*
+  3. Proposes an interim milestone payment (e.g. 50% now, balance in 15 days).
+
+---
+
+### Edge Case 5: Partial Payment & Milestone Recovery
+* **The Problem:** An overdue B2B invoice is for ₹1,00,000. The customer clicks the recovery link and makes a partial payment of ₹40,000.
+* **Workflow Hazard:** Marking the invoice as `STOP_PAID` loses the remaining ₹60,000; marking it as `FAILED` ignores the recovered ₹40,000.
+* **Production Protocol:**
+  1. Ingest partial capture webhook.
+  2. Deduct ₹40,000 from outstanding ledger balance (Remaining: ₹60,000).
+  3. Update recovery metrics: Add ₹40,000 to **Measured Money Recovered**.
+  4. Dynamically regenerate dunning templates and payment links for the remaining ₹60,000 balance.
+
+---
+
+### Edge Case 6: Chargeback / Fraud Dispute Raised During Active Dunning
+* **The Problem:** Customer files a fraud claim with their bank (`payment.disputed` webhook received) while the agent is in active recovery.
+* **Legal Liability Hazard:** Continuing automated collection calls or retries during an active dispute violates consumer protection and banking rules.
+* **Production Protocol:**
+  1. Immediately trigger **`STOP_DISPUTE_FRAUD`**.
+  2. Freeze all automated retries, SMS alerts, WhatsApp nudges, and voice calls instantly.
+  3. Escalate the case directly to authorized Risk & Fraud Operations with full audit logs.
+
+---
+
+### Edge Case 7: TRAI Quiet Hours Breach (Late-Night Failures)
+* **The Problem:** A recurring payment fails at 11:45 PM IST due to insufficient funds.
+* **Harassment Violation Hazard:** Sending pre-debit notifications or dunning messages at midnight violates fair practice guidelines.
+* **Production Protocol:**
+  1. Ingestion detects failure timestamp is outside the **08:00 AM – 08:00 PM IST** window.
+  2. Push event to the **Delayed Dispatch Queue**.
+  3. Hold execution until **08:05 AM IST** the following morning.
+
+---
+
+### Edge Case 8: Mid-Flight Mandate Limit Lowering
+* **The Problem:** Customer opened their UPI/banking app and decreased their mandate maximum limit from ₹5,000 to ₹2,000. The upcoming renewal invoice is ₹3,500.
+* **Infinite Retry Hazard:** Error returned is `mandate_limit_exceeded`. Direct retries will fail every time.
+* **Production Protocol:**
+  1. Classify error as **Hard Mandate Limit Failure**.
+  2. Auto-debit disabled.
+  3. Dispatch a 1-click link prompting the customer to increase their mandate cap or complete a 1-click AFA payment for the difference.
+
+---
+
+### Edge Case 9: Month-End & Leap Year Calendar Clamping
+* **The Problem:** Mandate registered on January 31st for monthly billing. February has only 28 days (or 29 in leap years).
+* **Scheduling Bug Hazard:** A naive date addition (`+30 days`) drifts billing dates across months.
+* **Production Protocol:**
+  1. Clamping algorithm snaps monthly execution dates to `min(billing_day, days_in_month)`.
+  2. For February, execution snaps to Feb 28 (or Feb 29).
+  3. Pre-debit notification is dispatched $\ge 24\text{ hours}$ earlier (Feb 27 at 09:00 AM).
+
+---
+
+### Edge Case 10: DND-Registered Customer with Incomplete Checkout
+* **The Problem:** A customer on the TRAI National Do Not Call (DND) registry abandons a high-value cart.
+* **Regulatory Breach Hazard:** Placing cold AI voice calls or sending un-consented promotional SMS violates TRAI UCC rules.
+* **Production Protocol:**
+  1. Classify checkout drop-off outreach as **`PROMOTIONAL`**.
+  2. Check `DND == True`.
+  3. Suppress all outbound voice calls and promotional SMS.
+  4. Fallback strictly to in-app session restore banner or transactional service email (if explicit consent exists).
+
+---
+
+## 5. Integration Code Snippet (Python Engine Classifier)
 
 ```python
 from dataclasses import dataclass
+from datetime import datetime, time
 from typing import Optional, Dict, Any
 
 @dataclass
@@ -216,16 +329,52 @@ class RecoveryDecision:
     retryable: bool
     afa_status: str
     action_protocol: str
+    communication_type: str
     stopping_rule: Optional[str] = None
+    delay_until_0805_ist: bool = False
 
-def classify_and_route_error(error_event: Dict[str, Any]) -> RecoveryDecision:
+def is_within_trai_safe_window(now: datetime) -> bool:
+    """Checks if current time is within 08:00 AM to 08:00 PM IST."""
+    return time(8, 0) <= now.time() <= time(20, 0)
+
+def classify_and_route_error(error_event: Dict[str, Any], current_time: datetime) -> RecoveryDecision:
     source = error_event.get("source")
     step = error_event.get("step")
     reason = error_event.get("reason")
-    amount = error_event.get("amount_inr", 0)
+    amount = float(error_event.get("amount_inr", 0))
     category = error_event.get("category", "STANDARD")
+    is_dnd = bool(error_event.get("is_dnd", False))
+    dispute_active = bool(error_event.get("dispute_active", False))
+    ptp_active_until = error_event.get("ptp_active_until")
 
-    # 1. Statutory Threshold Check
+    # Guard 1: Active Dispute / Fraud Flag
+    if dispute_active or reason == "payment_disputed":
+        return RecoveryDecision(
+            bucket_id=0,
+            reason="payment_disputed",
+            retryable=False,
+            afa_status="NOT_APPLICABLE",
+            action_protocol="LOCKDOWN_ESCALATE_TO_FRAUD_OPS",
+            communication_type="TRANSACTIONAL",
+            stopping_rule="STOP_DISPUTE_FRAUD"
+        )
+
+    # Guard 2: Active Promise-to-Pay (PTP) Grace Window
+    if ptp_active_until and datetime.fromisoformat(ptp_active_until) > current_time:
+        return RecoveryDecision(
+            bucket_id=0,
+            reason="ptp_grace_window_active",
+            retryable=False,
+            afa_status="NOT_APPLICABLE",
+            action_protocol="FREEZE_DUNNING_UNTIL_PTP_DATE",
+            communication_type="SERVICE",
+            stopping_rule="STOP_PTP_ACTIVE"
+        )
+
+    # Guard 3: TRAI Quiet Hours Check
+    delay_dispatch = not is_within_trai_safe_window(current_time)
+
+    # 1. Statutory Threshold Check (RBI 2026 Caps)
     is_exempt = category in ["MUTUAL_FUND", "INSURANCE_PREMIUM", "CREDIT_CARD_BILL"]
     cap = 100000.0 if is_exempt else 15000.0
     if amount > cap:
@@ -234,26 +383,30 @@ def classify_and_route_error(error_event: Dict[str, Any]) -> RecoveryDecision:
             reason="amount_exceeds_statutory_afa_limit",
             retryable=False,
             afa_status="AFA_REQUIRED_LINK_SENT",
-            action_protocol="GENERATE_DYNAMIC_AFA_PAYMENT_LINK"
+            action_protocol="GENERATE_DYNAMIC_AFA_PAYMENT_LINK",
+            communication_type="SERVICE",
+            delay_until_0805_ist=delay_dispatch
         )
 
     # 2. Hard Failure Classification
-    if reason == "mandate_cancelled_by_user":
+    if reason in ["mandate_cancelled_by_user", "mandate_revoked"]:
         return RecoveryDecision(
             bucket_id=8,
             reason=reason,
             retryable=False,
             afa_status="NOT_APPLICABLE",
             action_protocol="PURGE_RETRIES_SEND_SERVICE_EMAIL",
+            communication_type="SERVICE",
             stopping_rule="STOP_MANDATE_REVOKED"
         )
-    elif reason == "mandate_validity_expired":
+    elif reason in ["mandate_validity_expired", "mandate_expired"]:
         return RecoveryDecision(
             bucket_id=9,
             reason=reason,
             retryable=False,
             afa_status="NOT_APPLICABLE",
             action_protocol="SEND_MANDATE_RE_REGISTRATION_LINK",
+            communication_type="SERVICE",
             stopping_rule="STOP_MANDATE_EXPIRED"
         )
     elif reason in ["card_expired", "card_inactive"]:
@@ -262,7 +415,9 @@ def classify_and_route_error(error_event: Dict[str, Any]) -> RecoveryDecision:
             reason=reason,
             retryable=False,
             afa_status="NOT_APPLICABLE",
-            action_protocol="SEND_UPDATE_PAYMENT_METHOD_LINK"
+            action_protocol="SEND_UPDATE_PAYMENT_METHOD_LINK",
+            communication_type="SERVICE",
+            delay_until_0805_ist=delay_dispatch
         )
 
     # 3. Soft Technical / Liquidity Failures
@@ -272,7 +427,9 @@ def classify_and_route_error(error_event: Dict[str, Any]) -> RecoveryDecision:
             reason=reason,
             retryable=True,
             afa_status="EXEMPT_CATEGORY_SIP_INS_CC" if is_exempt else "NOT_REQUIRED",
-            action_protocol="QUEUE_24H_PRE_DEBIT_ALERT_SCHEDULE_SALARY_RETRY"
+            action_protocol="QUEUE_24H_PRE_DEBIT_ALERT_SCHEDULE_SALARY_RETRY",
+            communication_type="SERVICE",
+            delay_until_0805_ist=delay_dispatch
         )
     elif reason in ["bank_server_down", "bank_unavailable"]:
         return RecoveryDecision(
@@ -280,7 +437,8 @@ def classify_and_route_error(error_event: Dict[str, Any]) -> RecoveryDecision:
             reason=reason,
             retryable=True,
             afa_status="NOT_REQUIRED",
-            action_protocol="EXPONENTIAL_BACKOFF_DYNAMIC_ROUTING"
+            action_protocol="EXPONENTIAL_BACKOFF_DYNAMIC_ROUTING",
+            communication_type="SERVICE"
         )
     elif reason in ["gateway_timeout", "network_error"]:
         return RecoveryDecision(
@@ -288,7 +446,29 @@ def classify_and_route_error(error_event: Dict[str, Any]) -> RecoveryDecision:
             reason=reason,
             retryable=True,
             afa_status="NOT_REQUIRED",
-            action_protocol="POLL_RAZORPAY_FETCH_API_THEN_SETTLE"
+            action_protocol="IDEMPOTENT_POLL_RAZORPAY_FETCH_THEN_SETTLE",
+            communication_type="TRANSACTIONAL"
+        )
+
+    # 4. Checkout Drop-off Handling
+    elif reason == "checkout_abandonment_dropoff":
+        if is_dnd:
+            return RecoveryDecision(
+                bucket_id=12,
+                reason=reason,
+                retryable=False,
+                afa_status="NOT_REQUIRED",
+                action_protocol="SUPPRESS_PROMOTIONAL_USE_IN_APP_BANNER",
+                communication_type="PROMOTIONAL"
+            )
+        return RecoveryDecision(
+            bucket_id=12,
+            reason=reason,
+            retryable=False,
+            afa_status="NOT_REQUIRED",
+            action_protocol="DELIVER_1_CLICK_CART_RECOVERY_LINK",
+            communication_type="PROMOTIONAL",
+            delay_until_0805_ist=delay_dispatch
         )
 
     # Default Fallback
@@ -297,16 +477,19 @@ def classify_and_route_error(error_event: Dict[str, Any]) -> RecoveryDecision:
         reason=reason or "unknown_error",
         retryable=False,
         afa_status="AFA_REQUIRED_LINK_SENT",
-        action_protocol="DELIVER_MULTI_RAIL_CHECKOUT_LINK"
+        action_protocol="DELIVER_MULTI_RAIL_CHECKOUT_LINK",
+        communication_type="SERVICE",
+        delay_until_0805_ist=delay_dispatch
     )
 ```
 
 ---
 
-## 5. Verification Checklist
+## 6. Verification Checklist
 
 - [x] Based on Razorpay's official `source`, `step`, and `reason` error model.
 - [x] Covers 12 distinct concrete error buckets across customer, gateway, bank, and network origins.
+- [x] Includes 10 real-world production edge cases (Zombie payments, salary cycle traps, race conditions, MSMED 45-day clashes, partial payments, quiet hours).
 - [x] Clear binary tagging: `Retryable: YES (Soft)` vs `Retryable: NO (Hard / Statutory Stop)`.
 - [x] Compliant intervention specified for each bucket (upholding 24h pre-debit alert, cooling intervals, AFA caps, and DPDP/CCPA rules).
-- [x] Includes sample Python decision engine code ready for system implementation.
+- [x] Includes updated Python decision engine with edge case safety guards.
