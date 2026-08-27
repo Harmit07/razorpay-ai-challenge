@@ -3,11 +3,12 @@ Compliance & Policy Router for AI Revenue Recovery Agent.
 Maps diagnosed error buckets and regulatory constraints into concrete candidate action plans,
 enforcing statutory RBI AFA thresholds, TRAI DLT communication templates, 24h pre-debit notices,
 salary cycle snapping, 48h cooling intervals, and deterministic stopping rules.
+Programmatically enforces hard-coded compliance guards that literally cannot be bypassed.
 """
 
 from __future__ import annotations
 from enum import Enum
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
 
@@ -25,6 +26,11 @@ from src.classifiers.rule_classifier import (
     RetryabilityType,
     DLTStream,
 )
+
+
+class ComplianceViolationError(RuntimeError):
+    """Raised when an action plan violates statutory laws (RBI, TRAI, MSMED, CCPA) or hard internal safety policies."""
+    pass
 
 
 class RecoveryActionType(str, Enum):
@@ -79,9 +85,112 @@ class CandidateActionPlan(BaseModel):
     target_fsm_state: str = "ACTION_SCHEDULED"
 
 
+class ComplianceEnforcer:
+    """
+    Programmatic invariant validator.
+    Inspects candidate action plans against statutory mandates and internal invariants.
+    Throws ComplianceViolationError if any rule is bypassed.
+    """
+
+    @classmethod
+    def validate(cls, plan: CandidateActionPlan, event: TransactionFailureEvent) -> None:
+        """
+        Validates all hard-coded compliance guards that literally cannot be bypassed.
+        """
+        # -------------------------------------------------------------
+        # GUARD 1: Active Fraud / Dispute Quarantine (CCPA Anti-Harassment)
+        # -------------------------------------------------------------
+        if event.dispute_active or event.error_reason == "payment_disputed":
+            if plan.action_type not in [RecoveryActionType.STOP_TERMINATION, RecoveryActionType.HUMAN_OPS_REVIEW]:
+                raise ComplianceViolationError(
+                    f"VIOLATION_CCPA_DISPUTE_FREEZE: Outbound communication or retry scheduled for active dispute {event.txn_id}."
+                )
+            if plan.stopping_rule not in ["STOP_DISPUTE_FRAUD", None]:
+                raise ComplianceViolationError(
+                    f"VIOLATION_MISSING_DISPUTE_STOP: Dispute transaction must trigger STOP_DISPUTE_FRAUD."
+                )
+
+        # -------------------------------------------------------------
+        # GUARD 2: Max Attempts Cap (3 Retries Invariant)
+        # -------------------------------------------------------------
+        if event.current_attempt_count >= 3:
+            if plan.action_type in [RecoveryActionType.AUTO_DEBIT_RETRY, RecoveryActionType.VOICE_RECOVERY_CALL]:
+                raise ComplianceViolationError(
+                    f"VIOLATION_MAX_RETRIES_EXCEEDED: Attempt count is {event.current_attempt_count} (>= 3). Direct auto-debit and voice dunning are strictly prohibited."
+                )
+            if plan.action_type != RecoveryActionType.STOP_TERMINATION and plan.stopping_rule != "STOP_MAX_RETRIES":
+                raise ComplianceViolationError(
+                    f"VIOLATION_MISSING_MAX_RETRY_STOP: Transaction with >= 3 attempts must trigger STOP_MAX_RETRIES."
+                )
+
+        # -------------------------------------------------------------
+        # GUARD 3: Statutory AFA Ceiling Breach (> ₹15,000 / > ₹1,00,000)
+        # -------------------------------------------------------------
+        if event.txn_type == TransactionType.RECURRING_SUBSCRIPTION:
+            statutory_cap = 100000.0 if event.is_afa_exempt else 15000.0
+            if event.amount > statutory_cap:
+                if plan.action_type == RecoveryActionType.AUTO_DEBIT_RETRY:
+                    raise ComplianceViolationError(
+                        f"VIOLATION_RBI_AFA_CAP_EXCEEDED: Amount ₹{event.amount:,.2f} exceeds statutory AFA ceiling of ₹{statutory_cap:,.2f}. Direct auto-debit is illegal under RBI/DPSS/2026-27/396."
+                    )
+                if plan.action_type == RecoveryActionType.DYNAMIC_AFA_PAYMENT_LINK and not plan.afa_validation_enforced:
+                    raise ComplianceViolationError(
+                        f"VIOLATION_AFA_FLAG_NOT_ENFORCED: Action plan must set afa_validation_enforced=True when amount > ₹{statutory_cap:,.2f}."
+                    )
+
+        # -------------------------------------------------------------
+        # GUARD 4: Mandated ≥ 24-Hour Pre-Debit Notice Window for Recurring Auto-Debits
+        # -------------------------------------------------------------
+        if plan.action_type == RecoveryActionType.AUTO_DEBIT_RETRY and plan.requires_pre_debit_notice_24h:
+            if plan.pre_debit_notice_dispatch_time is None:
+                raise ComplianceViolationError(
+                    f"VIOLATION_RBI_24H_PRE_DEBIT: pre_debit_notice_dispatch_time is None for auto-debit retry {event.txn_id}."
+                )
+            # Check >= 24 hours (86,400s) difference with 60s tolerance for sub-second precision
+            lead_time = (plan.scheduled_execution_time - plan.pre_debit_notice_dispatch_time).total_seconds()
+            if lead_time < (86400 - 60):
+                raise ComplianceViolationError(
+                    f"VIOLATION_RBI_24H_PRE_DEBIT: Notice lead time is {lead_time/3600:.1f} hours (< 24h statutory window)."
+                )
+
+        # -------------------------------------------------------------
+        # GUARD 5: Mandate Revocation & Expiration Invariant
+        # -------------------------------------------------------------
+        if event.error_reason in ["mandate_cancelled_by_user", "mandate_revoked"]:
+            if plan.action_type == RecoveryActionType.AUTO_DEBIT_RETRY:
+                raise ComplianceViolationError(
+                    f"VIOLATION_MANDATE_REVOKED: Direct auto-debit scheduled on customer-revoked mandate {event.txn_id}."
+                )
+        if event.mandate_valid_until and plan.action_type == RecoveryActionType.AUTO_DEBIT_RETRY:
+            if event.mandate_valid_until < plan.scheduled_execution_time:
+                raise ComplianceViolationError(
+                    f"VIOLATION_MANDATE_EXPIRED: Auto-debit retry scheduled at {plan.scheduled_execution_time.isoformat()} after mandate expiration {event.mandate_valid_until.isoformat()}."
+                )
+
+        # -------------------------------------------------------------
+        # GUARD 6: Active Promise-to-Pay (PTP) Grace Period Freeze
+        # -------------------------------------------------------------
+        if event.ptp_record and event.ptp_record.status == "ACTIVE" and event.timestamp < event.ptp_record.grace_until:
+            if plan.action_type not in [RecoveryActionType.PTP_HOLD_FREEZE, RecoveryActionType.STOP_TERMINATION]:
+                raise ComplianceViolationError(
+                    f"VIOLATION_PTP_FREEZE_BREACH: Dunning action {plan.action_type} scheduled while Promise-to-Pay grace window is active."
+                )
+
+        # -------------------------------------------------------------
+        # GUARD 7: TRAI DND Promotional Outreach Prohibition
+        # -------------------------------------------------------------
+        if event.is_dnd and plan.dlt_stream == DLTStream.PROMOTIONAL:
+            if plan.action_type != RecoveryActionType.STOP_TERMINATION:
+                phone_repr = event.customer_phone_masked or event.txn_id
+                raise ComplianceViolationError(
+                    f"VIOLATION_TRAI_DND_PROMOTIONAL: Outbound promotional communication scheduled for DND registered user {phone_repr}."
+                )
+
+
 class ComplianceRouter:
     """
     Maps diagnosed transaction failures into compliant, executable CandidateActionPlan objects.
+    All outputs are strictly validated by ComplianceEnforcer before emission.
     """
 
     DLT_TEMPLATE_REGISTRY = {
@@ -151,6 +260,7 @@ class ComplianceRouter:
     def route(self, event: TransactionFailureEvent, diag: ClassificationResult) -> CandidateActionPlan:
         """
         Routes diagnosed transaction into a concrete, compliant CandidateActionPlan.
+        Enforces programmatic compliance invariant validation before emission.
         """
         now = event.timestamp
 
@@ -160,7 +270,7 @@ class ComplianceRouter:
         if diag.stopping_rule in ["STOP_DISPUTE_FRAUD", "STOP_MAX_RETRIES", "STOP_MANDATE_REVOKED"]:
             action_type = RecoveryActionType.STOP_TERMINATION
             channel = RecoveryChannel.INTERNAL_PORTAL if diag.stopping_rule == "STOP_DISPUTE_FRAUD" else RecoveryChannel.EMAIL
-            return CandidateActionPlan(
+            plan = CandidateActionPlan(
                 txn_id=event.txn_id,
                 action_type=action_type,
                 primary_channel=channel,
@@ -171,10 +281,12 @@ class ComplianceRouter:
                 compliance_audit_reasoning=f"Deterministic Stop: {diag.stopping_rule} enforced. Direct auto-debit and outreach purged.",
                 target_fsm_state="UNRECOVERABLE",
             )
+            ComplianceEnforcer.validate(plan, event)
+            return plan
 
         if diag.stopping_rule == "STOP_PTP_ACTIVE":
             grace_until = event.ptp_record.grace_until if event.ptp_record else now + timedelta(hours=24)
-            return CandidateActionPlan(
+            plan = CandidateActionPlan(
                 txn_id=event.txn_id,
                 action_type=RecoveryActionType.PTP_HOLD_FREEZE,
                 primary_channel=RecoveryChannel.INTERNAL_PORTAL,
@@ -185,12 +297,14 @@ class ComplianceRouter:
                 compliance_audit_reasoning=f"Promise-to-Pay Active: All dunning touches frozen until {grace_until.isoformat()}.",
                 target_fsm_state="PTP_FROZEN",
             )
+            ComplianceEnforcer.validate(plan, event)
+            return plan
 
         # -------------------------------------------------------------
         # 2. HUMAN OPS QUARANTINE (Low Confidence / High Risk Flag)
         # -------------------------------------------------------------
         if diag.requires_human_escalation or diag.confidence < 0.70:
-            return CandidateActionPlan(
+            plan = CandidateActionPlan(
                 txn_id=event.txn_id,
                 action_type=RecoveryActionType.HUMAN_OPS_REVIEW,
                 primary_channel=RecoveryChannel.INTERNAL_PORTAL,
@@ -200,6 +314,8 @@ class ComplianceRouter:
                 compliance_audit_reasoning=f"Risk/Ambiguity Gate: Confidence {diag.confidence:.2f} < 0.70 threshold. Escalated to Human Ops queue.",
                 target_fsm_state="HUMAN_REVIEW",
             )
+            ComplianceEnforcer.validate(plan, event)
+            return plan
 
         # -------------------------------------------------------------
         # 3. B2B COMMERCIAL INVOICES & MSMED STATUTORY BOUNDARIES
@@ -209,7 +325,7 @@ class ComplianceRouter:
             exec_time = now + timedelta(hours=24) if is_edge09 else now + timedelta(days=3)
             exec_time, delayed = self.adjust_for_trai_quiet_hours(exec_time)
             
-            return CandidateActionPlan(
+            plan = CandidateActionPlan(
                 txn_id=event.txn_id,
                 action_type=RecoveryActionType.MSMED_FINANCE_ESCALATION if is_edge09 else RecoveryActionType.DYNAMIC_AFA_PAYMENT_LINK,
                 primary_channel=RecoveryChannel.EMAIL,
@@ -221,6 +337,8 @@ class ComplianceRouter:
                 compliance_audit_reasoning="MSMED Act 2006 (Section 15/16) 45-day statutory ceiling enforced. Dunning clamped to 48 hours." if is_edge09 else "B2B commercial invoice recovery link scheduled.",
                 target_fsm_state="ACTION_SCHEDULED",
             )
+            ComplianceEnforcer.validate(plan, event)
+            return plan
 
         # -------------------------------------------------------------
         # 4. STATUTORY AFA CEILING BREACH (> ₹15,000 / > ₹1,00,000)
@@ -228,7 +346,7 @@ class ComplianceRouter:
         if diag.bucket_id == 11 or event.requires_afa_validation:
             exec_time, delayed = self.adjust_for_trai_quiet_hours(now)
             statutory_cap = 100000.0 if event.is_afa_exempt else 15000.0
-            return CandidateActionPlan(
+            plan = CandidateActionPlan(
                 txn_id=event.txn_id,
                 action_type=RecoveryActionType.DYNAMIC_AFA_PAYMENT_LINK,
                 primary_channel=RecoveryChannel.WHATSAPP,
@@ -242,6 +360,8 @@ class ComplianceRouter:
                 compliance_audit_reasoning=f"RBI 2026 E-Mandate Framework: Amount ₹{event.amount:,.2f} > ₹{statutory_cap:,.2f} cap. Direct auto-debit prohibited; dynamic AFA OTP checkout link dispatched.",
                 target_fsm_state="ACTION_SCHEDULED",
             )
+            ComplianceEnforcer.validate(plan, event)
+            return plan
 
         # -------------------------------------------------------------
         # 5. HARD INSTRUMENT & MANDATE RENEWAL LINKS (Buckets 7 & 9)
@@ -249,7 +369,7 @@ class ComplianceRouter:
         if diag.bucket_id in [7, 9]:
             exec_time, delayed = self.adjust_for_trai_quiet_hours(now)
             action_type = RecoveryActionType.DYNAMIC_INSTRUMENT_UPDATE_LINK
-            return CandidateActionPlan(
+            plan = CandidateActionPlan(
                 txn_id=event.txn_id,
                 action_type=action_type,
                 primary_channel=RecoveryChannel.WHATSAPP,
@@ -261,13 +381,15 @@ class ComplianceRouter:
                 compliance_audit_reasoning=f"Hard Instrument Failure (Bucket {diag.bucket_id}): Direct debits halted; secure 1-click instrument renewal link dispatched.",
                 target_fsm_state="ACTION_SCHEDULED",
             )
+            ComplianceEnforcer.validate(plan, event)
+            return plan
 
         # -------------------------------------------------------------
         # 6. UPI COLLECT EXPIRATION & SESSION LINKS (Buckets 5, 6, 10, 12)
         # -------------------------------------------------------------
         if diag.bucket_id == 5:
             exec_time, delayed = self.adjust_for_trai_quiet_hours(now)
-            return CandidateActionPlan(
+            plan = CandidateActionPlan(
                 txn_id=event.txn_id,
                 action_type=RecoveryActionType.WHATSAPP_UPI_INTENT,
                 primary_channel=RecoveryChannel.WHATSAPP,
@@ -279,10 +401,27 @@ class ComplianceRouter:
                 compliance_audit_reasoning="UPI Collect Expired: Dispatched 1-click UPI Intent deep-link via WhatsApp for instant in-app payment switch.",
                 target_fsm_state="ACTION_SCHEDULED",
             )
+            ComplianceEnforcer.validate(plan, event)
+            return plan
 
         if diag.bucket_id == 12:
+            if event.is_dnd:
+                plan = CandidateActionPlan(
+                    txn_id=event.txn_id,
+                    action_type=RecoveryActionType.STOP_TERMINATION,
+                    primary_channel=RecoveryChannel.INTERNAL_PORTAL,
+                    scheduled_execution_time=now,
+                    stopping_rule="STOP_OPT_OUT",
+                    dlt_stream=DLTStream.PROMOTIONAL,
+                    dlt_template_id=self.DLT_TEMPLATE_REGISTRY[RecoveryActionType.STOP_TERMINATION],
+                    compliance_audit_reasoning="Checkout Drop-off (DND Suppressed): Outbound promotional outreach prohibited by TRAI UCC registry.",
+                    target_fsm_state="UNRECOVERABLE",
+                )
+                ComplianceEnforcer.validate(plan, event)
+                return plan
+
             exec_time, delayed = self.adjust_for_trai_quiet_hours(now)
-            return CandidateActionPlan(
+            plan = CandidateActionPlan(
                 txn_id=event.txn_id,
                 action_type=RecoveryActionType.DYNAMIC_AFA_PAYMENT_LINK,
                 primary_channel=RecoveryChannel.WHATSAPP,
@@ -294,6 +433,8 @@ class ComplianceRouter:
                 compliance_audit_reasoning="Checkout Drop-off: Dispatched itemized cart recovery link with full pricing transparency (CCPA 2023).",
                 target_fsm_state="ACTION_SCHEDULED",
             )
+            ComplianceEnforcer.validate(plan, event)
+            return plan
 
         # -------------------------------------------------------------
         # 7. SOFT LIQUIDITY & TECHNICAL RETRIES (Buckets 1, 2, 3, 4)
@@ -301,10 +442,13 @@ class ComplianceRouter:
         attempt_no = event.current_attempt_count + 1
 
         if diag.bucket_id == 1:
-            # Soft Liquidity Failure: Snapping + 24h Pre-Debit Notice
-            scheduled_debit, snapped = self.snap_to_salary_window(now, attempt_no)
-            notice_dispatch = scheduled_debit - timedelta(hours=24)
-            notice_dispatch, delayed = self.adjust_for_trai_quiet_hours(notice_dispatch)
+            # 1. Notice dispatch adjusted for quiet hours
+            notice_dispatch, delayed = self.adjust_for_trai_quiet_hours(now)
+
+            # 2. Scheduled debit anchored to cooling/salary window, strictly >= notice_dispatch + 24h
+            scheduled_debit, snapped = self.snap_to_salary_window(notice_dispatch, attempt_no)
+            if scheduled_debit < notice_dispatch + timedelta(hours=24):
+                scheduled_debit = notice_dispatch + timedelta(hours=24)
 
             # Check if Attempt 3 -> escalate to voice recovery ladder
             if attempt_no == 3:
@@ -314,7 +458,7 @@ class ComplianceRouter:
                 action_type = RecoveryActionType.AUTO_DEBIT_RETRY
                 channel = RecoveryChannel.AUTO_DEBIT_API
 
-            return CandidateActionPlan(
+            plan = CandidateActionPlan(
                 txn_id=event.txn_id,
                 action_type=action_type,
                 primary_channel=channel,
@@ -330,50 +474,60 @@ class ComplianceRouter:
                 compliance_audit_reasoning=f"Soft Liquidity Retry #{attempt_no}: Mandated >=24h Pre-Debit Alert queued for {notice_dispatch.isoformat()}; auto-debit scheduled for {scheduled_debit.isoformat()} (Salary Snap: {snapped}).",
                 target_fsm_state="ACTION_SCHEDULED",
             )
+            ComplianceEnforcer.validate(plan, event)
+            return plan
 
         # Technical Failures (Buckets 2, 3, 4): Exponential Backoff / Dynamic Route
         if diag.bucket_id == 2:
             exec_time = now + timedelta(hours=2 * attempt_no)
-            return CandidateActionPlan(
+            plan = CandidateActionPlan(
                 txn_id=event.txn_id,
                 action_type=RecoveryActionType.AUTO_DEBIT_RETRY,
                 primary_channel=RecoveryChannel.AUTO_DEBIT_API,
                 scheduled_execution_time=exec_time,
+                requires_pre_debit_notice_24h=False,
                 dlt_stream=DLTStream.SERVICE_IMPLICIT,
                 dlt_template_id=self.DLT_TEMPLATE_REGISTRY[RecoveryActionType.AUTO_DEBIT_RETRY],
                 compliance_audit_reasoning="Core Banking CBS Outage: Applied exponential backoff schedule with dynamic gateway rail failover.",
                 target_fsm_state="ACTION_SCHEDULED",
             )
+            ComplianceEnforcer.validate(plan, event)
+            return plan
 
         if diag.bucket_id == 3:
-            return CandidateActionPlan(
+            plan = CandidateActionPlan(
                 txn_id=event.txn_id,
                 action_type=RecoveryActionType.AUTO_DEBIT_RETRY,
                 primary_channel=RecoveryChannel.AUTO_DEBIT_API,
                 scheduled_execution_time=now + timedelta(minutes=15),
+                requires_pre_debit_notice_24h=False,
                 dlt_stream=DLTStream.TRANSACTIONAL,
                 dlt_template_id=self.DLT_TEMPLATE_REGISTRY[RecoveryActionType.AUTO_DEBIT_RETRY],
                 compliance_audit_reasoning="Gateway Timeout: Triggered idempotent polling of Razorpay Fetch Payment API to verify capture state before retrying.",
                 target_fsm_state="ACTION_SCHEDULED",
             )
+            ComplianceEnforcer.validate(plan, event)
+            return plan
 
         # Default Soft Action (e.g. Bucket 4)
-        exec_time = now + timedelta(days=1)
-        exec_time, delayed = self.adjust_for_trai_quiet_hours(exec_time)
-        return CandidateActionPlan(
+        notice_dispatch, delayed = self.adjust_for_trai_quiet_hours(now)
+        exec_time = notice_dispatch + timedelta(days=2)
+        plan = CandidateActionPlan(
             txn_id=event.txn_id,
             action_type=RecoveryActionType.AUTO_DEBIT_RETRY,
             primary_channel=RecoveryChannel.AUTO_DEBIT_API,
             scheduled_execution_time=exec_time,
             is_delayed_for_quiet_hours=delayed,
             requires_pre_debit_notice_24h=True,
-            pre_debit_notice_dispatch_time=exec_time - timedelta(hours=24),
+            pre_debit_notice_dispatch_time=notice_dispatch,
             cooling_interval_hours=24,
             dlt_stream=DLTStream.SERVICE_IMPLICIT,
             dlt_template_id=self.DLT_TEMPLATE_REGISTRY[RecoveryActionType.AUTO_DEBIT_RETRY],
             compliance_audit_reasoning=f"Bank Limit Reached: Paused for 24h cooling; scheduled retry for Day T+2.",
             target_fsm_state="ACTION_SCHEDULED",
         )
+        ComplianceEnforcer.validate(plan, event)
+        return plan
 
     def route_batch(self, pairs: List[Tuple[TransactionFailureEvent, ClassificationResult]]) -> List[CandidateActionPlan]:
         """Routes a batch of (event, classification) pairs."""

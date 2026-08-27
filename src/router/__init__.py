@@ -1,5 +1,7 @@
 from src.router.compliance_router import (
     ComplianceRouter,
+    ComplianceEnforcer,
+    ComplianceViolationError,
     CandidateActionPlan,
     RecoveryActionType,
     RecoveryChannel,
@@ -7,6 +9,8 @@ from src.router.compliance_router import (
 
 __all__ = [
     "ComplianceRouter",
+    "ComplianceEnforcer",
+    "ComplianceViolationError",
     "CandidateActionPlan",
     "RecoveryActionType",
     "RecoveryChannel",
