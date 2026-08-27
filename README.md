@@ -19,7 +19,7 @@ This naive approach creates two fatal problems:
 ### The Solution: Autonomous AI Revenue Recovery Agent
 Our platform acts as a **smart, statutory-compliant revenue recovery orchestrator**:
 * **Diagnoses Root Cause**: Two-tier classifier mapping failure codes (Razorpay source/step/reason model) + local semantic intent engine for ambiguous bank text.
-* **Mathematical Expected Value (EV) Policy**: Intervenes only when $\text{EV} = (p_{\text{recover}} \times \text{Amount}) - \text{Channel Cost} - \text{Annoyance Penalty} > 0$.
+* **Mathematical Expected Value (EV) Policy**: Intervenes only when **EV = (P_recover × Amount) - Channel Cost - Annoyance Penalty > 0**.
 * **Dual-Layer Statutory Invariants**: Programmatically guarantees 100% compliance with [RBI](#rule-1-rbi-2026-e-mandate), [TRAI](#rule-4-trai-quiet-hours), [CPA 2019](#rule-5-cpa-2019-dispute-lock), and [DPDP Act 2023](#rule-7-dpdp-act-2023).
 * **Multi-Rail Smart Recovery**: Coordinates 48h cooling intervals, salary-cycle snapping (1st–5th / 25th–30th), dynamic AFA OTP payment links, WhatsApp 1-click UPI intent, and empathetic Hinglish voice recovery bots with [Promise-to-Pay (PTP) freezing](#rule-6-ptp-grace-window).
 * **Blockchain-Grade Cryptographic Audit Ledger**: Every decision produces a tamper-evident, [SHA-256 hash-chained audit record](#rule-9-cryptographic-audit-ledger).
@@ -207,9 +207,9 @@ stateDiagram-v2
 To win revenue back without causing regulatory fines, merchant churn, or harassment complaints, the agent strictly enforces 9 non-negotiable statutory & architectural guardrails:
 
 <a id="rule-1-rbi-2026-e-mandate"></a>
-### 1. 📋 RBI 2026 E-Mandate Framework (`RBI/DPSS/2026-27/396`) — $\ge 24\text{h}$ Pre-Debit Notice
+### 1. 📋 RBI 2026 E-Mandate Framework (`RBI/DPSS/2026-27/396`) — ≥ 24h Pre-Debit Notice
 * **What the law mandates**: Merchants must dispatch an explicit pre-debit alert to the customer at least 24 hours prior to every automated recurring charge, with the exact amount, merchant name, and an opt-out link.
-* **What our agent enforces**: The scheduler automatically queues a WhatsApp/SMS alert and guarantees $\ge 24\text{h}$ has elapsed before executing any automated recurring debit.
+* **What our agent enforces**: The scheduler automatically queues a WhatsApp/SMS alert and guarantees ≥ 24h has elapsed before executing any automated recurring debit.
 
 <a id="rule-2-statutory-afa-caps"></a>
 ### 2. 💳 Statutory AFA Limit Caps (₹15,000 Standard / ₹1,00,000 Exempt Categories)
@@ -248,7 +248,7 @@ To win revenue back without causing regulatory fines, merchant churn, or harassm
 
 <a id="rule-9-cryptographic-audit-ledger"></a>
 ### 9. 🛡️ Cryptographic SHA-256 Audit Trail & Ledger Integrity (Section 10 Standard)
-* **What the engineering & audit standard mandates**: Every state transition must produce an immutable record linking back to the previous block's SHA-256 hash ($\text{SHA-256}(\text{prev\_hash} \parallel \text{event\_data})$) to guarantee zero post-hoc log tampering.
+* **What the engineering & audit standard mandates**: Every state transition must produce an immutable record linking back to the previous block's SHA-256 hash (`SHA-256(prev_hash : event_data)`) to guarantee zero post-hoc log tampering.
 * **What our agent enforces**: All 2,548 transition events across the batch simulation form a verifiable cryptographic chain from genesis block `0000...0000` to the final settlement, with automated integrity verification on every audit export.
 
 ---
@@ -260,10 +260,10 @@ Inside the web dashboard, users can interact with the **Live Chaos Sandbox** to 
 1. **⚡ Inject CBS Bank Outage (HDFC 503)**:
    * Simulates core banking downtime (`bank_server_down`).
    * *Engine Adaptation*: Prohibits immediate retries, schedules 48h cooling interval, and sends an alternate 1-click WhatsApp UPI intent checkout link.
-   * *Expected Value*: Net $\text{EV} = +₹6,374.35$.
+   * *Expected Value*: Net EV = +₹6,374.35.
 2. **🛑 Inject Active Fraud Dispute ([CPA 2019](#rule-5-cpa-2019-dispute-lock))**:
    * Simulates a chargeback dispute filed with the issuing bank (`dispute_active=True`).
-   * *Engine Refusal*: Guard 1 enforces permanent quarantine (`STOP_DISPUTE_FRAUD`) $\rightarrow$ transitions immediately to `UNRECOVERABLE`. Zero customer touches sent.
+   * *Engine Refusal*: Guard 1 enforces permanent quarantine (`STOP_DISPUTE_FRAUD`) → transitions immediately to `UNRECOVERABLE`. Zero customer touches sent.
 3. **🌙 Inject TRAI Night Hours ([TRAI TCCCPR 2018](#rule-4-trai-quiet-hours))**:
    * Simulates a payment failure occurring at 11:30 PM.
    * *Engine Refusal*: Prohibits immediate notification dispatch; holds message in Delayed Queue for 9.0 hours and releases at 08:30 AM IST.
@@ -274,12 +274,14 @@ Inside the web dashboard, users can interact with the **Live Chaos Sandbox** to 
 
 Every recovery action is scored by the economic decision model:
 
-$$\text{EV} = (P_{\text{recover}} \times \text{Amount}) - \text{Channel Cost} - \text{Annoyance Penalty}$$
+```
+EV = (P_recover × Amount) - Channel Cost - Annoyance Penalty
+```
 
-* **$P_{\text{recover}}$**: Recovery probability derived from historical liquidity and mandate health ($0.00 - 1.00$).
-* **$\text{Channel Cost}$**: Marginal dispatch expense (e.g. ₹0.15 for WhatsApp/SMS, ₹3.50 for Voice Bot, ₹0.00 for auto-debit).
-* **$\text{Annoyance Penalty}$**: Quantified customer friction penalty (e.g. ₹4.00 for premature phone calls, ₹0.50 for pre-debit notices).
-* **Policy Floor**: If $\text{EV} \le 0$, the action is automatically suppressed or downgraded to a cheaper digital channel.
+* **P_recover**: Recovery probability derived from historical liquidity and mandate health (0.00 – 1.00).
+* **Channel Cost**: Marginal dispatch expense (e.g. ₹0.15 for WhatsApp/SMS, ₹3.50 for Voice Bot, ₹0.00 for auto-debit).
+* **Annoyance Penalty**: Quantified customer friction penalty (e.g. ₹4.00 for premature phone calls, ₹0.50 for pre-debit notices).
+* **Policy Floor**: If EV ≤ 0, the action is automatically suppressed or downgraded to a cheaper digital channel.
 
 ---
 
@@ -290,7 +292,7 @@ Every regulatory guardrail is verified by dedicated automated tests that assert 
 | Test ID | Edge Case Scenario | Statutory / Engineering Invariant | Verified Refusal Outcome |
 | :--- | :--- | :--- | :--- |
 | **`EDGE-01`** | Zombie Retry Cap | Max 3 auto-debits within 14-day window. | **BLOCKED:** Throws `ComplianceViolationError`; transitions to `UNRECOVERABLE`. |
-| **`EDGE-02`** | [₹15,001 Standard AFA Cap](#rule-2-statutory-afa-caps) | Direct auto-debit $> ₹15,000$ prohibited ([RBI DPSS 2026](#rule-2-statutory-afa-caps)). | **BLOCKED:** Auto-debit refused; dynamic AFA OTP payment link dispatched. |
+| **`EDGE-02`** | [₹15,001 Standard AFA Cap](#rule-2-statutory-afa-caps) | Direct auto-debit > ₹15,000 prohibited ([RBI DPSS 2026](#rule-2-statutory-afa-caps)). | **BLOCKED:** Auto-debit refused; dynamic AFA OTP payment link dispatched. |
 | **`EDGE-03`** | [₹1,00,001 Exemption Straddle](#rule-2-statutory-afa-caps) | Mutual Funds / Insurance relaxed cap is ₹1,00,000. | **BLOCKED:** ₹1,00,001 auto-debit refused; converted to dynamic AFA OTP checkout link. |
 | **`EDGE-04`** | [Mandate Expiring in 24h](#rule-1-rbi-2026-e-mandate) | Mandate expires before cooling + retry window. | **BLOCKED:** Refuses auto-debit; dispatches instrument renewal link. |
 | **`EDGE-05`** | [TRAI Quiet Hours Violation](#rule-4-trai-quiet-hours) | Outbound customer touch at 11:30 PM IST. | **BLOCKED:** Instant send blocked; queued for release at 08:30 AM IST next morning. |
