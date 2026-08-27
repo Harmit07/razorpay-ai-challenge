@@ -105,6 +105,9 @@ class TransactionFailureEvent(BaseModel):
     # Raw / Ambiguous Gateway Payloads
     raw_error_description: Optional[str] = Field(default=None, description="Raw unstructured bank decline text or unknown payload")
     
+    # Injected Edge Case Marker (Testing & Benchmark Calibration)
+    edge_case_tag: Optional[str] = Field(default=None, description="Identifier for deliberately injected edge case scenarios (e.g., EDGE_01_ZOMBIE_RETRY)")
+    
     # Lifecycle & Audit State
     attempt_history: List[AttemptRecord] = Field(default_factory=list, description="Historical list of recovery attempts")
     ptp_record: Optional[PromiseToPayRecord] = Field(None, description="Active Promise-to-Pay record if set")
