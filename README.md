@@ -5,10 +5,21 @@ An autonomous, audit-grade AI Revenue Recovery Agent that detects revenue at ris
 
 ---
 
-## 🎯 Implementation Scope & Core Focus
+## 🎯 Implementation Scope & Execution Boundaries
 
-* **Primary End-to-End Core:** **Razorpay-Native Payment & Mandate Recovery (Soft & Hard Failures)** — fully implemented end-to-end with the 12-bucket classifier, LLM intent parsing, RBI 2026 E-Mandate compliance checks, smart salary-cycle retry sequencer, dynamic instrument/AFA links, 7 deterministic stopping rules, and measured recovery analytics against a naive baseline.
-* **Secondary Modular Extensions:** Checkout Drop-Off recovery and B2B Receivables dunning with PTP tracking are fully designed, architected, and surfaced in the decision router.
+To ensure maximum depth, rigor, and production-grade reliability, the project defines an explicit implementation boundary:
+
+* ✅ **Fully Implemented Production Core:** **Razorpay-Native Payment & Mandate Recovery (Soft & Hard Failures)**
+  * End-to-end automated pipeline covering all 12 error taxonomy buckets and 10 real-world edge cases.
+  * Real LLM diagnostic parser for unstructured bank decline text and Promise-to-Pay (PTP) date/amount extraction.
+  * Deterministic compliance router with RBI 2026 E-Mandate caps (₹15k / ₹1L), mandatory $\ge 24\text{h}$ pre-debit notices, and 7 stopping rules.
+  * Smart salary-cycle retry sequencer with internal 48h cooling intervals.
+  * Dynamic AFA OTP payment links and mandate instrument renewal links.
+  * Cryptographic, tamper-evident JSON audit trail with end-to-end PII redaction.
+  * Live batch measurement harness evaluating Agentic Recovery vs. a Naive 24h Retry Baseline.
+* 📋 **Designed & Documented Extensions (Modular Architecture Stubs):**
+  * *Checkout Drop-off Recovery:* Architecture, anti-dark-pattern compliance rules, and taxonomy defined; stubbed in the decision router.
+  * *B2B Receivables Chaser:* MSMED 45-day statutory boundaries and Hinglish voice bot state machines documented in compliance specifications.
 
 ---
 
@@ -32,8 +43,10 @@ flowchart TD
         HARD["Hard / Non-Retryable Failure<br/>(card_expired, mandate_revoked, mandate_expired)"]
         DROP["Drop-Off / Commercial Overdue<br/>(cart_abandoned, overdue_b2b_invoice)"]
         
-        LLM_PARSER["LLM Ambiguity Resolver<br/>• Parses raw/unmapped bank strings<br/>• Extracts structured PTP dates/amounts<br/>• Evaluates fraud-adjacent context"]
-        HUMAN_ESC["HUMAN_REVIEW Escalation<br/>(Low confidence / Fraud-adjacent / High risk)"]
+        LLM_PARSER["LLM Ambiguity Resolver<br/>• Parses raw/unmapped bank decline text<br/>• Extracts structured PTP dates/amounts<br/>• Evaluates fraud-adjacent context"]
+        
+        HUMAN_ESC["Human Ops Queue<br/>(Low confidence &lt; 0.70 / High risk)"]
+        HUMAN_DECISION{"Operator Triage<br/>Decision"}
     end
 
     %% STAGE 3: COMPLIANCE ROUTER (DUAL-LAYER)
@@ -70,7 +83,7 @@ flowchart TD
     subgraph S6 ["6. Measurement & Recovery Analytics Engine"]
         BASELINE_COMPARE["Comparative Benchmark Engine<br/>Agentic Recovery vs. Naive Retry Baseline<br/>(Dumb 24h fixed retry, no AFA checks, no cooling)"]
         
-        KPI_METRICS["Live Recovery Metrics Dashboard<br/>• Total Revenue at Risk (₹)<br/>• Measured Money Recovered (₹)<br/>• Net Recovery Rate (%) & Lift over Baseline<br/>• 0 Compliance-Guard Bypasses (Enforced by Design)"]
+        KPI_METRICS["Live Recovery Metrics Dashboard<br/>• Total Revenue at Risk (₹)<br/>• Measured Money Recovered (₹)<br/>• Net Recovery Lift (%) & Lift over Baseline<br/>• 0 Compliance-Guard Bypasses (Enforced by Design)"]
         
         SETTLE_EVENT["Outcome Webhook Ingestion<br/>(payment.captured / invoice.paid)"]
     end
@@ -86,9 +99,13 @@ flowchart TD
     TRIAGE -->|Drop-off / Invoice| DROP
     TRIAGE -->|Ambiguous / Unmapped| LLM_PARSER
     
-    LLM_PARSER -->|Resolved| TRIAGE
-    LLM_PARSER -->|Low Confidence < 0.70 / Fraud Flag| HUMAN_ESC
-    HUMAN_ESC --> AUDIT_ENGINE
+    LLM_PARSER -->|Resolved Confidence >= 0.70| TRIAGE
+    LLM_PARSER -->|Confidence < 0.70 / Fraud Flag| HUMAN_ESC
+    
+    HUMAN_ESC --> HUMAN_DECISION
+    HUMAN_DECISION -->|Approved / Overridden| STOP
+    HUMAN_DECISION -->|Rejected / Blocked| STOPS_TRIGGERED
+    HUMAN_DECISION --> AUDIT_ENGINE
 
     SOFT --> STOP
     HARD --> STOP
@@ -134,18 +151,23 @@ flowchart TD
 
 ### 1. Ingestion Layer (`Revenue at Risk`)
 * Ingests payment failure and revenue degradation events across core streams:
-  * **Failed Subscriptions & Mandates:** `payment.failed`, `subscription.halted` on cards and UPI AutoPay.
-  * **Gateway & Network Degrades:** Timeout webhooks, CBS banking 503 outages.
-  * **Checkout Abandonments & Drop-offs:** Cart drop-off telemetry and UPI intent session expirations.
-  * **B2B Receivables Ledger:** Overdue commercial tax invoices.
+  * **Failed Subscriptions & Mandates (Core):** `payment.failed`, `subscription.halted` on cards and UPI AutoPay.
+  * **Gateway & Network Degrades (Core):** Timeout webhooks, CBS banking 503 outages.
+  * **Checkout Abandonments & Drop-offs (Extension):** Cart drop-off telemetry and UPI intent session expirations.
+  * **B2B Receivables Ledger (Extension):** Overdue commercial tax invoices.
 
 ### 2. Diagnosis & Classifier (with LLM Diagnostic Engine)
 * **Deterministic Classifier:** Fast regex and error-code triage mapping Razorpay's `source` / `step` / `reason` errors into **12 concrete buckets** documented in [root-cause-taxonomy.md](file:///Users/harmitjetani/Documents/GitHub/razorpay-ai-challenge/root-cause-taxonomy.md).
-* **LLM Diagnostic & Intent Engine:**
+* **Confidence Threshold Policy:**
+  * **`Confidence >= 0.85`**: High-confidence deterministic rule match or verified LLM extraction $\rightarrow$ immediate automated routing.
+  * **`0.70 <= Confidence < 0.85`**: Ambiguity zone $\rightarrow$ routed through LLM intent parser for contextual disambiguation.
+  * **`Confidence < 0.70`**: Conservative safety threshold favoring false human escalation over false automated action $\rightarrow$ routed to `HUMAN_ESC`.
+* **LLM Diagnostic & Intent Engine (`LLM_PARSER`):**
   * **Unstructured Error Resolution:** Disambiguates free-form bank decline text and unknown error payloads.
   * **PTP (Promise-to-Pay) Extraction:** Parses unstructured chat/voice transcripts into structured `{ptp_date, ptp_amount, condition}` entities.
-* **Human-in-the-Loop Escalation (`HUMAN_REVIEW`):**
-  * If classification confidence is $< 0.70$, or if fraud/chargeback risk flags are detected, the system routes the event to manual operations instead of taking automated action.
+* **Human-in-the-Loop Escalation (`HUMAN_ESC`):**
+  * Human operators review edge cases with full contextual audit history.
+  * Approved cases safely re-enter the compliance state machine (`STOP`); rejected or fraud-flagged cases route to `STOPS_TRIGGERED`.
 
 ### 3. Compliance & Policy Router (Dual-Layer Governance)
 * Separates statutory law from internal engineering policies, as codified in [compliance-rules.md](file:///Users/harmitjetani/Documents/GitHub/razorpay-ai-challenge/compliance-rules.md):
@@ -165,7 +187,7 @@ flowchart TD
   * Dispatches secure mandate update links when `reason: "instrument_update_required"`.
 * **Multi-Channel Conversational Engine:**
   * **WhatsApp 1-Click UPI Deep-Links:** Instant app-switch payment links for expired UPI collect requests.
-  * **Hinglish AI Voice Recovery Agent:** Empathetic voice recovery with PTP negotiation.
+  * **Hinglish AI Voice Recovery Bot:** Empathetic voice recovery with PTP negotiation.
   * **Promise-to-Pay (PTP) Tracker:** Automatically freezes retries until `PTP_PROMISE_DATE + 24 hours`.
 
 ### 5. Immutable Compliance Audit Trail
