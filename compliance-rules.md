@@ -5,7 +5,7 @@
 
 ## 1. Executive Summary & Regulatory Scope
 
-The AI Revenue Recovery agent operates under the strict regulatory oversight of the **Reserve Bank of India (RBI)**, the **National Payments Corporation of India (NPCI)**, the **Telecom Regulatory Authority of India (TRAI)**, and the **Digital Personal Data Protection (DPDP) Act, 2023**.
+The AI Revenue Recovery agent operates under the strict regulatory oversight of the **Reserve Bank of India (RBI)**, the **National Payments Corporation of India (NPCI)**, the **Telecom Regulatory Authority of India (TRAI)**, the **Micro, Small and Medium Enterprises Development (MSMED) Act, 2006**, the **Consumer Protection (E-Commerce) Rules / CCPA Guidelines, 2023**, and the **Digital Personal Data Protection (DPDP) Act, 2023**.
 
 Any automated intervention—ranging from recurring subscription retries and checkout dunning to Hinglish voice reminders and overdue B2B receivables tracking—must operate within deterministic, provably compliant boundaries.
 
@@ -19,6 +19,7 @@ Any automated intervention—ranging from recurring subscription retries and che
 3. **Threshold Increase to ₹15,000:** RBI Circular `CO.DPSS.POLC.No.S-518/02-14-003/2022-23`
 4. **Enhanced ₹1,00,000 Exemption:** RBI Circular `RBI/2023-24/90` (`CO.DPSS.POLC.No.S890/02-14-003/2023-24`) for Mutual Funds, Insurance Premiums, and Credit Card Bill Payments.
 5. **UPI AutoPay Expansion:** RBI Circular `DPSS.CO.PD No.1324/02.14.003/2019-20` & NPCI UPI AutoPay Operating Guidelines.
+6. **Transit & FASTag Exemption:** RBI Circular `CO.DPSS.POLC.No.S-545/02-14-003/2024-25` (Exemption of 24h pre-debit alert for auto-replenishment of FASTag/NCMC).
 
 ---
 
@@ -37,7 +38,45 @@ Any automated intervention—ranging from recurring subscription retries and che
 
 ---
 
-## 3. Outreach & Communications Compliance (TRAI TCCCPR & Fair Practices)
+## 3. NPCI UPI AutoPay & NACH Operational Specifications
+
+### Technical Guardrails & Rails Alignment:
+1. **Notification Window:** Pre-debit notifications must be dispatched within the **24-hour to 48-hour window** prior to execution on UPI AutoPay rails.
+2. **Mandate Identification:** All recurring retry requests must carry a validated **UMN (Unique Mandate Number)** issued during initial mandate creation.
+3. **Cooling-Off & Penalty Prevention:**
+   - Maximum of **3 debit attempts per invoice cycle**.
+   - Minimum interval of **48 hours** between debit retries to prevent customer bank account penalty/dishonour charges.
+   - Immediate circuit-breaker trigger on receiving hard bank error codes (e.g. `ACCOUNT_CLOSED`, `MANDATE_INACTIVE`).
+
+---
+
+## 4. MSMED Act, 2006 (B2B Receivables & Commercial Invoices)
+
+For B2B Overdue Receivables Chaser and Enterprise Dunning workflows:
+
+### Statutory References:
+- **Section 15 (Liability to make payment):** Buyer must pay MSME supplier on or before agreed date, not exceeding **45 days** from acceptance.
+- **Section 16 (Compound interest for delayed payment):** Delayed payments attract compound interest with monthly rests at **3x the Bank Rate** notified by the RBI.
+
+### B2B Recovery Guardrails:
+1. **Transparent Invoicing:** All communications must clearly reference the original Tax Invoice Number, PO Number, GSTIN, and Due Date.
+2. **Structured Promise-to-Pay (PTP):** The agent can negotiate compliant milestone payments or PTP dates within the statutory 45-day cycle.
+3. **Zero Intimidation:** B2B reminders must strictly adhere to professional accounts-receivable standards, avoiding harassment, unauthorized third-party contact, or defamatory outreach.
+
+---
+
+## 5. Consumer Protection (E-Commerce) Rules & Anti-Dark Patterns (CCPA 2023)
+
+For Checkout Drop-off Recovery & Cart Abandonment workflows:
+
+1. **Prohibition of "Subscription Traps":** Recovery nudges must never deceptively enroll customers into recurring billing without explicit, affirmative consent.
+2. **No Deceptive Urgency:** Countdown timers, inventory warnings, or discounts must reflect genuine merchant terms rather than false artificial scarcity.
+3. **Easy Cancellation & Opt-Out:** Every checkout recovery message must provide an explicit opt-out mechanism (e.g., reply `STOP` or 1-click unsubscribe).
+4. **Transparent Pricing:** The recovered payment link must disclose the exact total price, breakdown of taxes/GST, and recurring billing frequency (if any).
+
+---
+
+## 6. Outreach & Communications Compliance (TRAI TCCCPR & Fair Practices)
 
 ### Permissible Contact Windows
 - **TRAI Regulatory Calling Hours:** All automated outreach (Interactive Voice Recovery, Hinglish voice bot, WhatsApp reminders, and SMS dunning) is strictly restricted to **08:00 AM to 08:00 PM IST**.
@@ -51,14 +90,14 @@ Any automated intervention—ranging from recurring subscription retries and che
 
 ---
 
-## 4. Failure Classification & Bounded Intervention Decision Matrix
+## 7. Failure Classification & Bounded Intervention Decision Matrix
 
 ```mermaid
 flowchart TD
     A[Payment Failure / Drop-Off Ingested] --> B{Failure Category?}
     
     B -->|Soft Failure: Insufficient Funds / Bank Down| C[Check Amount Threshold]
-    C -->|Amount <= Cap| D[Queue 24h Pre-Debit Alert + Schedule Smart Retry]
+    C -->|Amount <= Cap: ₹15k / ₹1L| D[Queue 24h Pre-Debit Alert + Schedule Smart Retry]
     C -->|Amount > Cap| E[Send AFA/OTP Payment Link via WhatsApp/SMS]
     
     B -->|Hard Failure: Card Expired / Mandate Revoked| F[Halt Auto-Debit Retry<br/>Send Mandate Update / Re-auth Link]
@@ -77,11 +116,11 @@ flowchart TD
 | `EXPIRED_CARD` / `ACCOUNT_CLOSED` | Hard | Immediate notification with 1-click mandate update link. | Any automated debit retry against expired instrument. |
 | `MANDATE_REVOKED_BY_USER` | Hard | Cease auto-debit; send optional subscription cancellation / reactivate email. | Repeated dunning or auto-retrying cancelled mandate. |
 | `ABANDONED_CHECKOUT` | Drop-off | WhatsApp cart recovery nudge with personalized incentive / alternate payment rail (UPI). | High-pressure urgency tactics or deceptive pricing. |
-| `OVERDUE_B2B_INVOICE` | Receivables | Interactive conversational reminder $\rightarrow$ Promise-to-Pay (PTP) negotiation. | Defamatory or threatening communication. |
+| `OVERDUE_B2B_INVOICE` | Receivables | Interactive conversational reminder $\rightarrow$ Promise-to-Pay (PTP) negotiation under MSMED timelines. | Defamatory or threatening communication. |
 
 ---
 
-## 5. Deterministic Stopping Rules & Boundary Conditions
+## 8. Deterministic Stopping Rules & Boundary Conditions
 
 The AI Revenue Recovery Agent must **immediately terminate** all automated dunning, retries, and communications when any of the following boundary conditions are met:
 
@@ -103,7 +142,7 @@ The AI Revenue Recovery Agent must **immediately terminate** all automated dunni
 
 ---
 
-## 6. Data Privacy, DPDP 2023 & Fair Recovery Standards
+## 9. Data Privacy, DPDP 2023 & Fair Recovery Standards
 
 - **PII & Card Data Redaction:**
   * Raw 16-digit Primary Account Numbers (PAN) and CVVs must **never** be logged in transcripts, agent context, or audit databases (PCI-DSS compliance).
@@ -115,7 +154,7 @@ The AI Revenue Recovery Agent must **immediately terminate** all automated dunni
 
 ---
 
-## 7. Compliance Audit Trail Schema
+## 10. Compliance Audit Trail Schema
 
 Every recovery decision, evaluation, and action must be recorded into an immutable audit trail adhering to this exact schema:
 
@@ -141,10 +180,13 @@ Every recovery decision, evaluation, and action must be recorded into an immutab
 
 ---
 
-## 8. Summary Checklist for Agent Verification
+## 11. Summary Checklist for Agent Verification
 
 - [x] RBI 2026 e-Mandate Framework cited with ₹15,000 / ₹1,00,000 AFA thresholds.
 - [x] Mandatory 24-hour pre-debit alert and post-debit confirmation rules codified.
+- [x] NPCI UPI AutoPay & NACH 24–48h execution window and 48h cooling period.
+- [x] MSMED Act 2006 (Sections 15 & 16) 45-day payment term & B2B dunning rules.
+- [x] Consumer Protection / CCPA 2023 anti-dark patterns rules for checkout recovery.
 - [x] Soft failure vs. hard failure deterministic routing matrix defined.
 - [x] TRAI 08:00 AM – 08:00 PM contact window and frequency caps implemented.
 - [x] 5 Deterministic Stopping Rules (`STOP_PAID`, `STOP_PTP_ACTIVE`, `STOP_OPT_OUT`, `STOP_MAX_RETRIES`, `STOP_DISPUTE`).
