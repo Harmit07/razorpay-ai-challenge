@@ -6,7 +6,7 @@
 ## 1. Executive Summary & Dual-Layer Governance Architecture
 
 The AI Revenue Recovery Agent operates on a **dual-layer compliance architecture**:
-1. **Layer 1: Statutory & Regulatory Framework (The Law)** — Mandatory rules codified by the **Reserve Bank of India (RBI)**, **National Payments Corporation of India (NPCI)**, **Telecom Regulatory Authority of India (TRAI)**, **Micro, Small and Medium Enterprises Development (MSMED) Act, 2006**, **Consumer Protection / CCPA Guidelines, 2023**, and the **DPDP Act, 2023 (with DPDP Rules, 2025)**.
+1. **Layer 1: Statutory & Regulatory Framework (The Law)** — Mandatory rules codified by the **Reserve Bank of India (RBI)**, **National Payments Corporation of India (NPCI)**, **Telecom Regulatory Authority of India (TRAI)**, **Micro, Small and Medium Enterprises Development (MSMED) Act, 2006**, **Consumer Protection Act, 2019 (CPA 2019 / Central Consumer Protection Authority Guidelines, 2023)**, and the **DPDP Act, 2023 (with DPDP Rules, 2025)**.
 2. **Layer 2: Internal System Policies & Architectural Guardrails (Engineering Controls)** — Operational rate-limiters, safety stopping rules, anti-harassment heuristics, and retry sequencing bounds implemented in the recovery state machine.
 
 ```

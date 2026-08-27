@@ -154,8 +154,38 @@ elif view_mode == "🔍 Per-Transaction Audit Viewer":
         if edge_filter != "ALL":
             filtered_df = filtered_df[filtered_df["edge_case_tag"] == edge_filter]
 
+        def compute_classification(row):
+            if row.get("dispute_active") or row.get("error_reason") == "mandate_cancelled_by_user" or len(row.get("attempt_history", [])) >= 3:
+                return "Terminal Stop"
+            elif row.get("risk_flag") or row.get("error_reason") == "raw_unmapped_decline":
+                return "Human Review"
+            return "Recoverable"
+
+        def compute_compliance_state(row):
+            is_exempt = str(row.get("category", "")).lower() in ["mutual_fund", "insurance_premium", "credit_card_bill"] or row.get("is_afa_exempt", False)
+            stat_cap = 100000.0 if is_exempt else 15000.0
+            is_rec = str(row.get("txn_type", "")).lower() == "recurring_subscription"
+            amt = float(row.get("amount", 0.0))
+
+            if row.get("dispute_active"):
+                return "Dispute Locked (CPA 2019)"
+            elif row.get("error_reason") == "mandate_cancelled_by_user":
+                return "Revoked Mandate"
+            elif row.get("is_dnd"):
+                return "DND Suppressed"
+            elif is_rec and amt > stat_cap:
+                return "AFA OTP Link Enforced"
+            elif is_rec and is_exempt and amt > 15000 and amt <= 100000:
+                return "AFA Exempt (₹1L Cap)"
+            elif is_rec:
+                return "24h Notice Queued"
+            return "Clear"
+
+        df["Classification"] = df.apply(compute_classification, axis=1)
+        df["Compliance State"] = df.apply(compute_compliance_state, axis=1)
+
         st.dataframe(
-            filtered_df[["txn_id", "amount", "method", "error_reason", "txn_type", "customer_phone_masked", "edge_case_tag"]].head(50),
+            filtered_df[["txn_id", "amount", "method", "error_reason", "category", "Classification", "Compliance State", "edge_case_tag"]].head(50),
             use_container_width=True,
         )
 
@@ -212,7 +242,7 @@ else:
     2. **TRAI Telecom Commercial Communications Regulations (TCCCPR 2018)**:
        - Enforces strict 08:00–20:00 IST quiet hours for outbound customer communications.
        - Prohibits promotional recovery messages to registered DND consumers.
-    3. **Consumer Protection Act 2019 & CCPA Anti-Harassment Guidelines**:
+    3. **Consumer Protection Act 2019 (CPA 2019) & RBI Ombudsman Scheme 2021**:
        - Immediate cease and freeze of all dunning touches upon active dispute or chargeback filing.
     4. **Digital Personal Data Protection (DPDP) Act 2023**:
        - 100% PII redaction and masking across all audit trails, transcripts, and logs.

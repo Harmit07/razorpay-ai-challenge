@@ -145,6 +145,8 @@ class BatchRecoveryPipeline:
 
             # 2. Diagnose via Rule Classifier + LLM Fallback
             diag = self.rule_classifier.classify(event)
+            is_llm_used = diag.requires_llm_disambiguation or event.error_reason == "raw_unmapped_decline"
+            
             if diag.requires_llm_disambiguation:
                 llm_res = self.llm_parser.disambiguate_error(event)
                 diag.bucket_id = llm_res.assigned_bucket_id
@@ -152,6 +154,23 @@ class BatchRecoveryPipeline:
                 diag.confidence = llm_res.confidence
                 diag.recommended_action = llm_res.recommended_action
                 diag.requires_human_escalation = llm_res.requires_human_escalation
+                diag_rationale = f"LLM Semantic Parser resolved unmapped decline to Bucket {diag.bucket_id} ({diag.bucket_name}) [Confidence: {diag.confidence:.2f}]. Reasoning: {llm_res.reasoning}"
+            else:
+                diag_rationale = f"Rule-based deterministic triage classified to Bucket {diag.bucket_id} ({diag.bucket_name}) [Confidence: {diag.confidence:.2f}]."
+
+            # Explicit Audit Step: Record classification diagnosis
+            self.audit_logger.log_transition(
+                event=event,
+                from_state=RecoveryState.DIAGNOSING,
+                to_state=RecoveryState.DIAGNOSING,
+                event_type="LLM_DISAMBIGUATION_COMPLETED" if is_llm_used else "RULE_DIAGNOSIS_COMPLETED",
+                channel="LLM_FALLBACK_PARSER" if is_llm_used else "RULE_ENGINE_TRIAGE",
+                statutory_rule_applied=diag.statutory_rule_applied,
+                internal_policy_applied=diag.internal_policy_applied,
+                decision_rationale=diag_rationale,
+                outcome_status="DIAGNOSIS_SUCCESS",
+                timestamp=event.timestamp,
+            )
 
             # 3. Route to Candidate Action Plan
             plan = self.router.route(event, diag)

@@ -36,7 +36,7 @@ class NaiveSimulationResults(BaseModel):
     violation_rbi_afa_cap_breached: int
     violation_rbi_mandate_revoked_retry: int
     violation_rbi_mandate_expired_retry: int
-    violation_ccpa_dispute_harassment: int
+    violation_cpa_dispute_harassment: int
     violation_trai_dnd_spam: int
     violation_max_retries_exceeded: int
 
@@ -98,7 +98,7 @@ class NaiveBaselineRunner:
             if event.error_reason == "mandate_validity_expired" or (event.mandate_valid_until and event.mandate_valid_until < event.timestamp + timedelta(hours=24)):
                 v_expired += 1
 
-            # Violation 5: CCPA Dispute Harassment
+            # Violation 5: CPA 2019 Dispute Harassment (Consumer Protection Act 2019)
             if event.dispute_active:
                 v_dispute += 1
 
@@ -158,7 +158,7 @@ class NaiveBaselineRunner:
             violation_rbi_afa_cap_breached=v_afa_cap,
             violation_rbi_mandate_revoked_retry=v_revoked,
             violation_rbi_mandate_expired_retry=v_expired,
-            violation_ccpa_dispute_harassment=v_dispute,
+            violation_cpa_dispute_harassment=v_dispute,
             violation_trai_dnd_spam=v_dnd,
             violation_max_retries_exceeded=v_max_retries,
         )

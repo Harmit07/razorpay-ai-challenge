@@ -8,7 +8,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import List, Optional
 from datetime import datetime, timezone
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, computed_field
 
 
 class PaymentMethod(str, Enum):
@@ -131,6 +131,7 @@ class TransactionFailureEvent(BaseModel):
             return f"{masked_user}@{parts[1]}"
         return v
 
+    @computed_field
     @property
     def is_afa_exempt(self) -> bool:
         """Returns True if category is eligible for relaxed ₹1,00,000 threshold."""
@@ -140,11 +141,13 @@ class TransactionFailureEvent(BaseModel):
             TransactionCategory.CREDIT_CARD_BILL,
         ]
 
+    @computed_field
     @property
     def statutory_afa_cap(self) -> float:
         """Returns the statutory no-AFA limit (₹15,000 or ₹1,00,000)."""
         return 100000.0 if self.is_afa_exempt else 15000.0
 
+    @computed_field
     @property
     def requires_afa_validation(self) -> bool:
         """True if the recurring e-mandate amount exceeds the statutory AFA ceiling."""
@@ -152,6 +155,7 @@ class TransactionFailureEvent(BaseModel):
             return False
         return self.amount > self.statutory_afa_cap
 
+    @computed_field
     @property
     def current_attempt_count(self) -> int:
         """Returns number of previous attempts made."""

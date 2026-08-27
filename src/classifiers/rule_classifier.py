@@ -95,7 +95,7 @@ class RuleBasedClassifier:
                 recommended_action="LOCKDOWN_ESCALATE_TO_FRAUD_OPS",
                 dlt_stream=DLTStream.TRANSACTIONAL,
                 stopping_rule="STOP_DISPUTE_FRAUD",
-                statutory_rule_applied="CCPA_2023_ANTI_HARASSMENT_DISPUTE_FREEZE",
+                statutory_rule_applied="CPA_2019_ANTI_HARASSMENT_DISPUTE_FREEZE",
                 internal_policy_applied="FRAUD_DISPUTE_QUARANTINE",
                 requires_human_escalation=True,
                 routing_destination="HUMAN_REVIEW",
@@ -384,14 +384,32 @@ class RuleBasedClassifier:
                 confidence=0.94,
                 recommended_action="DELIVER_1_CLICK_CART_RECOVERY_LINK",
                 dlt_stream=DLTStream.PROMOTIONAL,
-                statutory_rule_applied="CCPA_2023_PRICE_TRANSPARENCY",
+                statutory_rule_applied="CPA_2019_PRICE_TRANSPARENCY",
                 internal_policy_applied="ZERO_DARK_PATTERNS_ITEMIZED_LINK",
                 is_quiet_hours_delayed=is_quiet_hours,
                 routing_destination="ACTION_SCHEDULED",
             )
 
         # -------------------------------------------------------------
-        # RULE 13: B2B Commercial Invoices (MSMED 45-Day Boundary)
+        # RULE 13: Bucket 13 Raw Unmapped Decline Text -> LLM Disambiguation
+        # -------------------------------------------------------------
+        if event.error_reason == "raw_unmapped_decline" or event.raw_error_description is not None:
+            return ClassificationResult(
+                txn_id=event.txn_id,
+                bucket_id=13,
+                bucket_name="Raw Unmapped / Ambiguous Bank Decline",
+                retryability=RetryabilityType.UNMAPPED_AMBIGUOUS,
+                confidence=0.75,  # In the 0.70-0.85 zone -> requires LLM intent parser
+                recommended_action="ROUTE_TO_LLM_PARSER_FOR_INTENT_DISAMBIGUATION",
+                dlt_stream=DLTStream.SERVICE_IMPLICIT,
+                statutory_rule_applied="NONE",
+                internal_policy_applied="LLM_AMBIGUITY_RESOLUTION_PIPELINE",
+                requires_llm_disambiguation=True,
+                routing_destination="DIAGNOSING",
+            )
+
+        # -------------------------------------------------------------
+        # RULE 14: B2B Commercial Invoices (MSMED 45-Day Boundary)
         # -------------------------------------------------------------
         if event.txn_type == TransactionType.B2B_INVOICE or event.error_reason == "b2b_invoice_overdue":
             is_edge09 = event.edge_case_tag == "EDGE_09_MSMED_45_DAY_CLASH"
@@ -407,24 +425,6 @@ class RuleBasedClassifier:
                 internal_policy_applied="B2B_FINANCE_ESCALATION",
                 is_quiet_hours_delayed=is_quiet_hours,
                 routing_destination="ACTION_SCHEDULED",
-            )
-
-        # -------------------------------------------------------------
-        # RULE 14: Bucket 13 Raw Unmapped Decline Text -> LLM Disambiguation
-        # -------------------------------------------------------------
-        if event.error_reason == "raw_unmapped_decline" or event.raw_error_description is not None:
-            return ClassificationResult(
-                txn_id=event.txn_id,
-                bucket_id=13,
-                bucket_name="Raw Unmapped / Ambiguous Bank Decline",
-                retryability=RetryabilityType.UNMAPPED_AMBIGUOUS,
-                confidence=0.75,  # In the 0.70-0.85 zone -> requires LLM intent parser
-                recommended_action="ROUTE_TO_LLM_PARSER_FOR_INTENT_DISAMBIGUATION",
-                dlt_stream=DLTStream.SERVICE_IMPLICIT,
-                statutory_rule_applied="NONE",
-                internal_policy_applied="LLM_AMBIGUITY_RESOLUTION_PIPELINE",
-                requires_llm_disambiguation=True,
-                routing_destination="DIAGNOSING",
             )
 
         # -------------------------------------------------------------

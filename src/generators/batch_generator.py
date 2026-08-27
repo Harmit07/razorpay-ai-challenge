@@ -567,9 +567,9 @@ class BatchFailureGenerator:
         elif self.rng.random() < 0.12:
             raw_error_description = f"GW_INFO_LOG: {config['error_reason']}_RC_{self.rng.randint(10, 99)}"
 
-        # Optional Promise-to-Pay for B2B or recurring cases
+        # Optional Promise-to-Pay for B2B or recurring cases (exclude bucket 11 & 13 to highlight their core paths)
         ptp_record = None
-        if self.rng.random() < 0.06 and not dispute_active:
+        if self.rng.random() < 0.06 and not dispute_active and config["bucket_id"] not in [11, 13]:
             promise_date = base_timestamp + timedelta(days=self.rng.randint(2, 6))
             ptp_record = PromiseToPayRecord(
                 promised_date=promise_date,

@@ -98,12 +98,12 @@ class ComplianceEnforcer:
         Validates all hard-coded compliance guards that literally cannot be bypassed.
         """
         # -------------------------------------------------------------
-        # GUARD 1: Active Fraud / Dispute Quarantine (CCPA Anti-Harassment)
+        # GUARD 1: Active Fraud / Dispute Quarantine (CPA 2019 Anti-Harassment)
         # -------------------------------------------------------------
         if event.dispute_active or event.error_reason == "payment_disputed":
             if plan.action_type not in [RecoveryActionType.STOP_TERMINATION, RecoveryActionType.HUMAN_OPS_REVIEW]:
                 raise ComplianceViolationError(
-                    f"VIOLATION_CCPA_DISPUTE_FREEZE: Outbound communication or retry scheduled for active dispute {event.txn_id}."
+                    f"VIOLATION_CPA_DISPUTE_FREEZE: Outbound communication or retry scheduled for active dispute {event.txn_id}."
                 )
             if plan.stopping_rule not in ["STOP_DISPUTE_FRAUD", None]:
                 raise ComplianceViolationError(

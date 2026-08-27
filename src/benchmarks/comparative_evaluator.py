@@ -113,7 +113,7 @@ The Naive baseline blindly commits **{report.naive_compliance_violations:,} regu
 1. **RBI Mandatory 24h Pre-Debit Notice:** Breached on all automated recurring debit retries without prior notice.
 2. **RBI Statutory AFA Threshold ($>₹15,000 / >₹1,00,000$):** Illegal direct debit retries on high-value recurring transactions.
 3. **RBI Customer Revocation Mandate:** Illegal debit retries on customer-cancelled mandates.
-4. **CCPA Anti-Harassment Rules:** Outbound dunning on disputed and chargeback-flagged transactions.
+4. **Consumer Protection Act (CPA 2019) Anti-Harassment Rules:** Outbound dunning on disputed and chargeback-flagged transactions.
 5. **TRAI Commercial UCC DND Registry:** Outbound promotional recovery nudges dispatched to registered DND consumers.
 
 ---

@@ -52,16 +52,32 @@ function renderTransactions(txns) {
   displaySet.forEach((t) => {
     const tr = document.createElement("tr");
 
-    // Outcome / Compliance Status badge
-    let statusBadge = `<span class="badge badge-success">Recoverable</span>`;
+    // 1. Classification Column (Recoverable vs Terminal Stop vs Human Review)
+    let classBadge = `<span class="badge badge-success">Recoverable</span>`;
+    if (t.dispute_active || t.error_reason === "mandate_cancelled_by_user" || (t.attempt_history && t.attempt_history.length >= 3)) {
+      classBadge = `<span class="badge badge-danger">Terminal Stop</span>`;
+    } else if (t.risk_flag || t.error_reason === "raw_unmapped_decline") {
+      classBadge = `<span class="badge badge-warning">Human Review</span>`;
+    }
+
+    // 2. Compliance State Column (Specific Statutory Boundary)
+    const isExempt = ["mutual_fund", "insurance_premium", "credit_card_bill"].includes((t.category || "").toLowerCase()) || Boolean(t.is_afa_exempt);
+    const statutoryCap = isExempt ? 100000.0 : 15000.0;
+    const isRecurring = (t.txn_type || "").toLowerCase() === "recurring_subscription";
+
+    let compBadge = `<span class="badge badge-success">Clear</span>`;
     if (t.dispute_active) {
-      statusBadge = `<span class="badge badge-danger">Dispute Locked</span>`;
+      compBadge = `<span class="badge badge-danger">Dispute Locked (CPA 2019)</span>`;
     } else if (t.error_reason === "mandate_cancelled_by_user") {
-      statusBadge = `<span class="badge badge-warning">Revoked Mandate</span>`;
-    } else if (t.amount > 15000 && t.txn_type === "RECURRING_SUBSCRIPTION" && !t.is_afa_exempt) {
-      statusBadge = `<span class="badge badge-shield">AFA OTP Link Required</span>`;
+      compBadge = `<span class="badge badge-warning">Revoked Mandate</span>`;
     } else if (t.is_dnd) {
-      statusBadge = `<span class="badge badge-warning">DND Suppressed</span>`;
+      compBadge = `<span class="badge badge-warning">DND Suppressed</span>`;
+    } else if (isRecurring && t.amount > statutoryCap) {
+      compBadge = `<span class="badge badge-shield">AFA OTP Link Enforced</span>`;
+    } else if (isRecurring && isExempt && t.amount > 15000 && t.amount <= 100000) {
+      compBadge = `<span class="badge badge-shield" style="background:rgba(16,185,129,0.15); color:#34d399;">AFA Exempt (₹1L Cap)</span>`;
+    } else if (isRecurring) {
+      compBadge = `<span class="badge badge-purple">24h Notice Queued</span>`;
     }
 
     const edgeBadge = t.edge_case_tag ? `<br><span style="font-size:10px; color:#38bdf8;">${t.edge_case_tag}</span>` : "";
@@ -71,9 +87,9 @@ function renderTransactions(txns) {
       <td class="mono">₹${t.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
       <td>${t.method}</td>
       <td><span style="font-family:var(--font-mono); font-size:11px;">${t.error_reason}</span></td>
-      <td>${t.txn_type} / ${t.category}</td>
-      <td class="mono">${t.customer_phone_masked || t.customer_email_masked}</td>
-      <td>${statusBadge}</td>
+      <td><span style="font-size:11px;">${t.category}</span></td>
+      <td>${classBadge}</td>
+      <td>${compBadge}</td>
       <td><button class="btn-view" onclick="openAuditModal('${t.txn_id}')">View Audit Trail</button></td>
     `;
     tbody.appendChild(tr);

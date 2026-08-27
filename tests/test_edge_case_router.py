@@ -224,7 +224,7 @@ class TestEdgeCaseRouterGuards(unittest.TestCase):
         )
         with self.assertRaises(ComplianceViolationError) as ctx:
             ComplianceEnforcer.validate(unsafe_plan, ec)
-        self.assertIn("VIOLATION_CCPA_DISPUTE_FREEZE", str(ctx.exception))
+        self.assertIn("VIOLATION_CPA_DISPUTE_FREEZE", str(ctx.exception))
         print(f"[EDGE-08 REFUSAL AUDIT LOG]: Bounded Refusal -> {ctx.exception}")
 
     # =========================================================================
