@@ -1,0 +1,24 @@
+[
+  {
+    "audit_id": "aud_043fde9ebb4b",
+    "timestamp": "2026-08-27T10:49:13.110699+00:00",
+    "entity_id": "pay_392456de",
+    "customer_masked": "+91-9879****2424",
+    "amount_inr": 203121.43,
+    "category": "MUTUAL_FUND",
+    "communication_type": "SERVICE",
+    "afa_required": true,
+    "afa_status": "AFA_REQUIRED_LINK_SENT",
+    "from_state": "DIAGNOSING",
+    "to_state": "ACTION_SCHEDULED",
+    "event_type": "DYNAMIC_AFA_LINK_SCHEDULED",
+    "channel": "WHATSAPP",
+    "statutory_rule_applied": "RBI_2023_24_90_1L_EXEMPTION",
+    "internal_policy_applied": "AUTO_DEBIT_STRICTLY_PROHIBITED",
+    "decision_rationale": "RBI 2026 E-Mandate Framework: Amount \u20b9203,121.43 > \u20b9100,000.00 cap. Direct auto-debit prohibited; dynamic AFA OTP checkout link dispatched.",
+    "outcome_status": "SCHEDULED",
+    "grievance_details_included": true,
+    "active_ptp_date": null,
+    "stop_rule_triggered": null
+  }
+]
