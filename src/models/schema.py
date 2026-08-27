@@ -99,7 +99,11 @@ class TransactionFailureEvent(BaseModel):
     # Compliance & Safety Flags
     is_dnd: bool = Field(default=False, description="Whether customer is registered on TRAI DND registry")
     dispute_active: bool = Field(default=False, description="Whether an active fraud dispute/chargeback is open")
+    risk_flag: bool = Field(default=False, description="Independent high-risk / fraud-adjacent flag requiring human review")
     mandate_valid_until: Optional[datetime] = Field(None, description="Mandate expiry date for recurring subscriptions")
+    
+    # Raw / Ambiguous Gateway Payloads
+    raw_error_description: Optional[str] = Field(default=None, description="Raw unstructured bank decline text or unknown payload")
     
     # Lifecycle & Audit State
     attempt_history: List[AttemptRecord] = Field(default_factory=list, description="Historical list of recovery attempts")

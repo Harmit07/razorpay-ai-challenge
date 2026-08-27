@@ -1,7 +1,8 @@
 """
 Batch Generator Skeleton for AI Revenue Recovery Agent.
 Generates realistic, diverse synthetic batches of payment failure events
-across all 12 error taxonomy buckets, regulatory thresholds, and real-world edge cases.
+across all 13 error taxonomy buckets (including raw/ambiguous declines),
+independent risk flags, regulatory thresholds, and real-world edge cases.
 """
 
 import random
@@ -26,12 +27,21 @@ class BatchFailureGenerator:
     Generates synthetic batches of failed payment events modeled on Razorpay's error taxonomy.
     """
 
+    RAW_UNSTRUCTURED_DECLINES = [
+        "U30-SWITCH_UNAVAILABLE_CODE_987: Issuer switch dropped packet during inter-bank settlement route",
+        "DECLINE_RC_91: SWITCH TIMEOUT / ISSUER INOPERATIVE / RETRY_NOT_ALLOWED_BY_RULE_44",
+        "AC_RESTRICTED: ACCOUNT_IN_DORMANT_SUSPENSE_STATUS_CODE_402_KYC_PENDING",
+        "CUSTOM_FILTER_TRIGGER: VELOCITY_BURST_SCORE_88_FLAGGED_BY_ISSUER_CBS",
+        "UNSTRUCTURED_DECLINE_STRING: BANK_CBS_ERROR_EXT_FAIL_UNKNOWN_RESPONSE_CODE_99",
+        "RESP_57_TRANSACTION_NOT_PERMITTED_TO_CARDHOLDER_SPECIAL_SECURITY_BLOCK",
+    ]
+
     # Realistic error bucket distributions and signatures
     BUCKET_SIGNATURES = [
         # Bucket 1: Insufficient Balance (Soft / Liquidity)
         {
             "bucket_id": 1,
-            "weight": 30,
+            "weight": 28,
             "error_code": "BAD_REQUEST_ERROR",
             "error_source": ErrorSource.CUSTOMER,
             "error_step": ErrorStep.PAYMENT_AUTHORIZATION,
@@ -44,7 +54,7 @@ class BatchFailureGenerator:
         # Bucket 2: Bank Outage / Server Down (Soft / Technical)
         {
             "bucket_id": 2,
-            "weight": 12,
+            "weight": 10,
             "error_code": "GATEWAY_ERROR",
             "error_source": ErrorSource.GATEWAY,
             "error_step": ErrorStep.PAYMENT_AUTHORIZATION,
@@ -57,7 +67,7 @@ class BatchFailureGenerator:
         # Bucket 3: Gateway Timeout / Socket Hangup (Soft / Network)
         {
             "bucket_id": 3,
-            "weight": 8,
+            "weight": 7,
             "error_code": "GATEWAY_ERROR",
             "error_source": ErrorSource.NETWORK,
             "error_step": ErrorStep.PAYMENT_AUTHORIZATION,
@@ -83,7 +93,7 @@ class BatchFailureGenerator:
         # Bucket 5: UPI Collect Request Expired (Customer Action)
         {
             "bucket_id": 5,
-            "weight": 10,
+            "weight": 9,
             "error_code": "BAD_REQUEST_ERROR",
             "error_source": ErrorSource.CUSTOMER,
             "error_step": ErrorStep.PAYMENT_AUTHORIZATION,
@@ -96,7 +106,7 @@ class BatchFailureGenerator:
         # Bucket 6: 3DS OTP Authentication Failure (Customer Drop)
         {
             "bucket_id": 6,
-            "weight": 8,
+            "weight": 7,
             "error_code": "BAD_REQUEST_ERROR",
             "error_source": ErrorSource.CUSTOMER,
             "error_step": ErrorStep.PAYMENT_AUTHENTICATION,
@@ -184,6 +194,19 @@ class BatchFailureGenerator:
             "category": TransactionCategory.STANDARD,
             "amount_range": (499.0, 12999.0),
         },
+        # Bucket 13: Raw Unmapped / Ambiguous Bank Decline Text
+        {
+            "bucket_id": 13,
+            "weight": 6,
+            "error_code": "GATEWAY_ERROR",
+            "error_source": ErrorSource.GATEWAY,
+            "error_step": ErrorStep.PAYMENT_AUTHORIZATION,
+            "error_reason": "raw_unmapped_decline",
+            "method": PaymentMethod.CARD,
+            "txn_type": TransactionType.RECURRING_SUBSCRIPTION,
+            "category": TransactionCategory.STANDARD,
+            "amount_range": (999.0, 14000.0),
+        },
     ]
 
     def __init__(self, seed: Optional[int] = 42):
@@ -193,6 +216,7 @@ class BatchFailureGenerator:
         self,
         bucket_override: Optional[int] = None,
         base_timestamp: Optional[datetime] = None,
+        force_risk_flag: Optional[bool] = None,
     ) -> TransactionFailureEvent:
         """Generates a single synthetic TransactionFailureEvent."""
         if base_timestamp is None:
@@ -243,6 +267,21 @@ class BatchFailureGenerator:
         is_dnd = self.rng.random() < 0.15
         dispute_active = (config["bucket_id"] == 8 and self.rng.random() < 0.2)
 
+        # Independent Risk Flag (Fraud / High Risk)
+        if force_risk_flag is not None:
+            risk_flag = force_risk_flag
+        else:
+            # Independent ~10% probability of risk_flag across any event, higher for bucket 13
+            base_risk_prob = 0.35 if config["bucket_id"] == 13 else 0.08
+            risk_flag = self.rng.random() < base_risk_prob
+
+        # Raw / Ambiguous decline description
+        raw_error_description = None
+        if config["bucket_id"] == 13:
+            raw_error_description = self.rng.choice(self.RAW_UNSTRUCTURED_DECLINES)
+        elif self.rng.random() < 0.12:
+            raw_error_description = f"GW_INFO_LOG: {config['error_reason']}_RC_{self.rng.randint(10, 99)}"
+
         mandate_valid_until = None
         if mandate_id:
             if config["bucket_id"] == 9:
@@ -266,21 +305,27 @@ class BatchFailureGenerator:
             customer_email_masked=email_masked,
             is_dnd=is_dnd,
             dispute_active=dispute_active,
+            risk_flag=risk_flag,
+            raw_error_description=raw_error_description,
             mandate_valid_until=mandate_valid_until,
             attempt_history=attempt_history,
             timestamp=base_timestamp,
         )
 
     def generate_batch(self, count: int = 50) -> List[TransactionFailureEvent]:
-        """Generates a batch of N failure events ensuring coverage across all 12 buckets."""
+        """Generates a batch of N failure events ensuring coverage across all 13 buckets, risk flags, and ambiguous text."""
         batch: List[TransactionFailureEvent] = []
 
-        # Guarantee at least 1 of each of the 12 concrete buckets
-        for b_id in range(1, 13):
+        # Guarantee at least 1 of each of the 13 concrete buckets
+        for b_id in range(1, 14):
             batch.append(self.generate_single_event(bucket_override=b_id))
 
+        # Explicitly guarantee at least 3 risk-flagged events in the batch
+        for _ in range(3):
+            batch.append(self.generate_single_event(force_risk_flag=True))
+
         # Fill the remaining batch using realistic statistical weights
-        remaining = max(0, count - 12)
+        remaining = max(0, count - len(batch))
         for _ in range(remaining):
             batch.append(self.generate_single_event())
 

@@ -29,6 +29,8 @@ class TestSchema(unittest.TestCase):
             customer_id="cust_01HZ89K12",
             customer_phone_masked="+91-9812345678",
             customer_email_masked="rahul.verma@example.com",
+            risk_flag=False,
+            raw_error_description=None,
         )
 
         self.assertEqual(event.txn_id, "pay_01HZ89K12")
@@ -36,9 +38,29 @@ class TestSchema(unittest.TestCase):
         self.assertEqual(event.method, PaymentMethod.UPI_AUTOPAY)
         self.assertFalse(event.requires_afa_validation)
         self.assertEqual(event.statutory_afa_cap, 15000.00)
+        self.assertFalse(event.risk_flag)
+        self.assertIsNone(event.raw_error_description)
         # Verify automatic PII masking validator
         self.assertTrue("****" in event.customer_phone_masked)
         self.assertTrue("*****" in event.customer_email_masked)
+
+    def test_risk_flag_and_raw_description(self):
+        event = TransactionFailureEvent(
+            txn_id="pay_risk_1",
+            amount=12999.00,
+            method=PaymentMethod.CARD,
+            error_code="GATEWAY_ERROR",
+            error_source=ErrorSource.GATEWAY,
+            error_step=ErrorStep.PAYMENT_AUTHORIZATION,
+            error_reason="raw_unmapped_decline",
+            customer_id="cust_risk_1",
+            customer_phone_masked="+91-98****9012",
+            customer_email_masked="u*****r@example.com",
+            risk_flag=True,
+            raw_error_description="U30-SWITCH_UNAVAILABLE_CODE_987",
+        )
+        self.assertTrue(event.risk_flag)
+        self.assertEqual(event.raw_error_description, "U30-SWITCH_UNAVAILABLE_CODE_987")
 
     def test_afa_limits_and_exemptions(self):
         # 1. Standard Category: ₹16,000 exceeds ₹15,000 cap
