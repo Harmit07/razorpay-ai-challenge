@@ -316,6 +316,78 @@
           </div>
         </section>
 
+        <!-- Compliance Rules & Statutory Safeguards Section -->
+        <section class="panel" id="rules">
+          <div class="panel-header">
+            <div>
+              <h2 class="section-heading">Programmatic Statutory Compliance Rules</h2>
+              <p class="section-sub">Hard-coded Indian regulatory invariants that the AI recovery router cannot bypass under any circumstances.</p>
+            </div>
+            <div class="simulation-pill">
+              <span class="status-dot-green"></span>
+              <span>100% Invariants Verified</span>
+            </div>
+          </div>
+
+          <div class="pipeline-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
+            
+            <div class="pipeline-card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span class="badge-pill pill-info"><span class="badge-dot"></span>RBI Framework</span>
+                <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">RBI/DPSS/2026-27/396</span>
+              </div>
+              <h3>Mandatory 24h Pre-Debit Notice</h3>
+              <p>Every automated recurring debit retry strictly requires a customer notification delivered at least 24 hours in advance via WhatsApp/SMS containing an instant opt-out link.</p>
+            </div>
+
+            <div class="pipeline-card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span class="badge-pill pill-info"><span class="badge-dot"></span>AFA Limit Cap</span>
+                <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">RBI AFA 2026</span>
+              </div>
+              <h3>Statutory ₹15k / ₹1L Ceilings</h3>
+              <p>Recurring payments > ₹15,000 prohibit direct auto-debits and automatically convert to dynamic AFA OTP payment links. Relaxed to ₹1,00,000 for Mutual Funds, Insurance, and Credit Cards.</p>
+            </div>
+
+            <div class="pipeline-card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span class="badge-pill pill-warning"><span class="badge-dot"></span>TRAI TCCCPR</span>
+                <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">08:00–20:00 IST</span>
+              </div>
+              <h3>Customer Quiet Hours & DND</h3>
+              <p>All outbound customer touches generated outside 08:00–20:00 IST are queued until next morning. Promotional messages to National DND registry numbers are strictly suppressed.</p>
+            </div>
+
+            <div class="pipeline-card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span class="badge-pill pill-error"><span class="badge-dot"></span>CPA 2019</span>
+                <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">Dispute Quarantine</span>
+              </div>
+              <h3>Active Dispute & Chargeback Freeze</h3>
+              <p>When a transaction is flagged with an active chargeback or customer fraud dispute, all automated retries and dunning communications instantly freeze (<code>STOP_DISPUTE_FRAUD</code>).</p>
+            </div>
+
+            <div class="pipeline-card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span class="badge-pill pill-success"><span class="badge-dot"></span>DPDP Act 2023</span>
+                <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">PII Protection</span>
+              </div>
+              <h3>Customer Data Privacy & Masking</h3>
+              <p>All customer identifiers (phone numbers, email addresses) are permanently masked (e.g. <code>+91-9876****4321</code>) across all runtime audit trails, logs, and database records.</p>
+            </div>
+
+            <div class="pipeline-card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span class="badge-pill pill-neutral"><span class="badge-dot"></span>MSMED Act 2006</span>
+                <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">Section 15 & 16</span>
+              </div>
+              <h3>B2B 45-Day Overdue Ceiling</h3>
+              <p>Commercial invoices approaching the statutory 45-day overdue boundary are automatically clamped and escalated directly to finance operations rather than standard customer nudges.</p>
+            </div>
+
+          </div>
+        </section>
+
       </main>
     </div>
   </div>

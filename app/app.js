@@ -9,9 +9,26 @@ let currentViewingTxnId = null;
 
 // Initialize Dashboard
 document.addEventListener("DOMContentLoaded", async () => {
+  setupSidebarNavigation();
   await loadSummaryData();
   await loadTransactions();
 });
+
+function setupSidebarNavigation() {
+  const navItems = document.querySelectorAll(".sidebar-nav .nav-item");
+  navItems.forEach(item => {
+    item.addEventListener("click", (e) => {
+      e.preventDefault();
+      navItems.forEach(i => i.classList.remove("active"));
+      item.classList.add("active");
+      const targetId = item.getAttribute("href").replace("#", "");
+      const targetEl = document.getElementById(targetId);
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  });
+}
 
 async function loadSummaryData() {
   try {
