@@ -202,6 +202,36 @@ stateDiagram-v2
 
 ---
 
+## 📜 Core Compliance Rules & Indian Regulatory Guardrails
+
+To win revenue back without causing regulatory fines, merchant churn, or harassment complaints, the agent strictly enforces 6 non-negotiable Indian statutory frameworks:
+
+1. **RBI 2026 E-Mandate Framework (`RBI/DPSS/2026-27/396`) — $\ge 24\text{h}$ Pre-Debit Notice**
+   * *What the law mandates*: Merchants must dispatch a pre-debit alert to the customer at least 24 hours prior to every automated recurring charge, including clear transaction amount, merchant name, and an opt-out link.
+   * *What our agent enforces*: The scheduler automatically queues a WhatsApp/SMS alert and guarantees $\ge 24\text{h}$ has elapsed before executing any automated recurring debit.
+
+2. **Statutory AFA Limit Caps (₹15,000 Standard / ₹1,00,000 Exempt Categories)**
+   * *What the law mandates*: Auto-debit without OTP is capped at ₹15,000 per cycle. A relaxed ceiling of ₹1,00,000 is allowed strictly for Mutual Funds (SIPs), Insurance Premiums, and Credit Card bills.
+   * *What our agent enforces*: Any transaction exceeding its statutory ceiling (e.g. ₹15,001 or ₹1,00,001) is programmatically blocked from direct auto-debit and converted into a dynamic AFA OTP checkout link.
+
+3. **TRAI Telecom Commercial Communications Regulations (TCCCPR 2018) — Safe Contact Hours & DND**
+   * *What the law mandates*: Commercial calls and dunning outreach are strictly prohibited during night quiet hours (08:00 PM to 08:00 AM IST) and to customers registered on the National DND Registry for marketing.
+   * *What our agent enforces*: Failures occurring at night are held in the Delayed Dispatch Queue for 08:30 AM release; all customer recovery messages use whitelisted DLT `SERVICE_IMPLICIT` streams.
+
+4. **Consumer Protection Act (CPA 2019) & CCPA Guidelines 2023 — Anti-Harassment & Dispute Lock**
+   * *What the law mandates*: Repeated debit attempts or dunning communications while an active fraud dispute or chargeback is open constitute illegal harassment and unfair trade practices.
+   * *What our agent enforces*: When `dispute_active=True`, Guard 1 instantly freezes all dunning (`STOP_DISPUTE_FRAUD`), prevents further retries, and escalates the transaction for human review.
+
+5. **DPDP Act 2023 (Digital Personal Data Protection) — Complete PII Redaction**
+   * *What the law mandates*: Customer Personally Identifiable Information (PII) must be protected, masked, and never exposed in plaintext across operational logs, telemetry, or third-party LLMs.
+   * *What our agent enforces*: All phone numbers (`+91-9876****4321`) and emails (`r****y@example.com`) are permanently redacted across runtime logs, JSON exports, and UI dashboards.
+
+6. **MSMED Act 2006 (Sections 15 & 16) — 45-Day B2B Payment Boundaries**
+   * *What the law mandates*: Invoices from Micro and Small Enterprises must be settled within agreed periods not exceeding 45 days, after which penal compound interest applies.
+   * *What our agent enforces*: Overdue commercial invoices approaching 45 days bypass standard automated reminders and are immediately escalated to merchant finance operations.
+
+---
+
 ## 💥 Live Chaos & Fault Injection Sandbox
 
 Inside the web dashboard, users can interact with the **Live Chaos Sandbox** to test how the system reacts in real time to unexpected production failures:
