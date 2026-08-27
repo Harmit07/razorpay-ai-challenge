@@ -55,7 +55,7 @@ Evaluated across the exact same deterministic dataset of **750 payment failures*
 | **Recovery Yield Rate** | **9.02%** | **23.84%** | **+14.82% Absolute Yield Gain** |
 | **Successful Recoveries** | 51 transactions | **198 transactions** | **+147 Additional Rescued Subscriptions** |
 | **Statutory Violations Committed** | **599 Violations ⚠️** *(Severe Fine Risk)* | **0 Violations 🛡️** *(100% Invariant Safe)* | **100% Compliance Risk Elimination** |
-| **[RBI $\ge 24\text{h}$ Pre-Debit Notices](#rule-1-rbi-2026-e-mandate)** | 0 sent (100% Non-Compliant) | **424 Dispatched Compliantly** | Full Statutory Notice Window Met |
+| **[RBI ≥ 24h Pre-Debit Notices](#rule-1-rbi-2026-e-mandate)** | 0 sent (100% Non-Compliant) | **424 Dispatched Compliantly** | Full Statutory Notice Window Met |
 | **[AFA Limit Respect (>₹15k / >₹1L)](#rule-2-statutory-afa-caps)** | 0 checked (Illegal debits attempted) | **114 Dynamic AFA Links Routed** | Zero Unauthorized Auto-Debits |
 | **[Revoked Mandates Halted](#rule-1-rbi-2026-e-mandate)** | 0 halted (Harassed cancelled users) | **32 Instantly Quarantined** | Zero Cancelled Mandate Debits |
 | **[TRAI Quiet Hours Suppressed](#rule-3-trai-quiet-hours)** | 0 delayed (Violated night rules) | **42 DND / Quiet Numbers Held** | Zero TRAI UCC/DND Breaches |
@@ -287,7 +287,7 @@ Every regulatory guardrail is verified by dedicated automated tests that assert 
 
 ---
 
-## 💻 Enterprise FinTech SaaS Dashboard (`http://localhost:8888`)
+## 💻 Enterprise FinTech SaaS Dashboard
 
 The web application is built with a **Clean Light-Theme Enterprise FinTech SaaS Design System** inspired by Stripe, Linear, and Vercel:
 
