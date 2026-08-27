@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-CLI tool to execute the Rule-Based Classifier on the transaction dataset
-and generate a comprehensive classification and compliance audit breakdown.
+CLI tool to execute the Full Diagnostic Classifier Pipeline
+(Stage 1 Rule-Based Triage + Stage 2 LLM Fallback Disambiguation)
+and print a detailed classification, reasoning, and compliance audit report.
 """
 
 import sys
@@ -14,6 +15,7 @@ sys.path.insert(0, str(root_dir))
 
 from src.generators.batch_generator import BatchFailureGenerator
 from src.classifiers.rule_classifier import RuleBasedClassifier, RetryabilityType
+from src.classifiers.llm_fallback import LLMFallbackClassifier
 
 
 def main():
@@ -29,53 +31,46 @@ def main():
     else:
         events = generator.load_from_json(dataset_path)
 
-    classifier = RuleBasedClassifier()
-    results = classifier.classify_batch(events)
+    rule_classifier = RuleBasedClassifier()
+    llm_parser = LLMFallbackClassifier()
 
-    total = len(results)
-    high_conf = [r for r in results if r.confidence >= 0.85]
-    ambiguous = [r for r in results if r.requires_llm_disambiguation]
-    human_esc = [r for r in results if r.requires_human_escalation]
+    stage1_results = rule_classifier.classify_batch(events)
+    total = len(stage1_results)
 
-    # Stopping rules summary
-    stopping_rules = {}
-    for r in results:
-        if r.stopping_rule:
-            stopping_rules[r.stopping_rule] = stopping_rules.get(r.stopping_rule, 0) + 1
+    # Separate into Clean (>=0.85), Ambiguous (for LLM Disambiguation), and Human Esc (<0.70 / Risk)
+    clean_cases = [r for r in stage1_results if r.confidence >= 0.85]
+    ambiguous_events = [e for e, r in zip(events, stage1_results) if r.requires_llm_disambiguation]
+    human_esc = [r for r in stage1_results if r.requires_human_escalation]
 
-    # Retryability breakdown
-    retryability = {}
-    for r in results:
-        retryability[r.retryability.value] = retryability.get(r.retryability.value, 0) + 1
+    # Stage 2: Process ambiguous cases through LLM fallback
+    llm_resolved = [llm_parser.disambiguate_error(e) for e in ambiguous_events]
 
-    # DLT Stream breakdown
-    dlt_streams = {}
-    for r in results:
-        dlt_streams[r.dlt_stream.value] = dlt_streams.get(r.dlt_stream.value, 0) + 1
+    print("\n" + "=" * 70)
+    print("🎯 FULL RECOVERY DIAGNOSTIC & LLM FALLBACK PIPELINE AUDIT (750 TXNS)")
+    print("=" * 70)
+    print(f"• Total Ingested Transactions         : {total:,}")
+    print(f"• Stage 1: Clean Deterministic Rules   : {len(clean_cases):>4} ({(len(clean_cases)/total)*100:>5.1f}%)")
+    print(f"• Stage 2: Sent to LLM Fallback Parser : {len(ambiguous_events):>4} ({(len(ambiguous_events)/total)*100:>5.1f}%)")
+    print(f"• Direct Human Review Escalations     : {len(human_esc):>4} ({(len(human_esc)/total)*100:>5.1f}%)")
+    print("-" * 70)
+    print("🤖 LLM FALLBACK DISAMBIGUATION BREAKDOWN (Sample Resolved Audits):")
+    for i, res in enumerate(llm_resolved[:5], 1):
+        print(f"  [{i}] Txn ID   : {res.txn_id}")
+        print(f"      Assigned : Bucket {res.assigned_bucket_id} ({res.assigned_bucket_name})")
+        print(f"      Conf     : {res.confidence:.2f}")
+        print(f"      Audit Log: \"{res.reasoning}\"")
+        print(f"      Action   : {res.recommended_action}")
+        print()
 
-    print("\n" + "=" * 65)
-    print("🎯 RULE-BASED CLASSIFIER EXECUTION AUDIT (750 TRANSACTIONS)")
-    print("=" * 65)
-    print(f"• Total Transactions Processed        : {total:,}")
-    print(f"• Clean Rule-Based Resolution (>=0.85): {len(high_conf):>4} ({(len(high_conf)/total)*100:>5.1f}%)")
-    print(f"• Ambiguous Cases (LLM Disambiguation): {len(ambiguous):>4} ({(len(ambiguous)/total)*100:>5.1f}%)")
-    print(f"• Risk Flagged / Human Review (<0.70) : {len(human_esc):>4} ({(len(human_esc)/total)*100:>5.1f}%)")
-    print("-" * 65)
-    print("🔄 Retryability & Action Routing Distribution:")
-    for ret, cnt in retryability.items():
-        pct = (cnt / total) * 100
-        print(f"  - {ret:<28}: {cnt:>4} ({pct:>5.1f}%)")
-    print("-" * 65)
-    print("🛑 Triggered Stopping Rules (Deterministic Invariants):")
-    for rule, cnt in sorted(stopping_rules.items(), key=lambda x: x[1], reverse=True):
-        pct = (cnt / total) * 100
-        print(f"  - {rule:<28}: {cnt:>4} ({pct:>5.1f}%)")
-    print("-" * 65)
-    print("📡 TRAI DLT Outbound Stream Allocation:")
-    for stream, cnt in dlt_streams.items():
-        pct = (cnt / total) * 100
-        print(f"  - {stream:<28}: {cnt:>4} ({pct:>5.1f}%)")
-    print("=" * 65 + "\n")
+    # Aggregate final state after LLM resolution
+    final_resolved_count = len(clean_cases) + sum(1 for r in llm_resolved if not r.requires_human_escalation)
+    final_human_count = len(human_esc) + sum(1 for r in llm_resolved if r.requires_human_escalation)
+
+    print("-" * 70)
+    print("📈 FINAL SYSTEM RESOLUTION YIELD:")
+    print(f"• Successfully Automated Actions : {final_resolved_count:>4} ({(final_resolved_count/total)*100:>5.1f}%)")
+    print(f"• Safe Human Escalation Queue    : {final_human_count:>4} ({(final_human_count/total)*100:>5.1f}%)")
+    print("=" * 70 + "\n")
 
 
 if __name__ == "__main__":
