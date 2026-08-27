@@ -166,14 +166,16 @@ stateDiagram-v2
         ConfidenceEvaluation --> [*]
     }
 
-    DIAGNOSING --> ACTION_SCHEDULED: High Confidence (Soft / Link Action)
-    DIAGNOSING --> HUMAN_REVIEW: Low Confidence < 0.70 / Fraud Flag
-    DIAGNOSING --> UNRECOVERABLE: Hard Stop (Revoked / Expired / DND Block)
+    DIAGNOSING --> ACTION_SCHEDULED: Soft Failure or Recoverable Hard (Expired Card / Mandate / AFA Link)
+    DIAGNOSING --> HUMAN_REVIEW: Low Confidence < 0.70 / Risk Flag
+    DIAGNOSING --> UNRECOVERABLE: Terminal Hard Stop (Mandate Revoked / Opt-Out / Fraud Flag)
 
     state HUMAN_REVIEW {
         [*] --> OperatorTriage
         OperatorTriage --> Approved: Manual Override / Corrected
         OperatorTriage --> Rejected: Fraud Confirmed / Bad Debt
+        Approved --> [*]
+        Rejected --> [*]
     }
 
     HUMAN_REVIEW --> ACTION_SCHEDULED: Operator Approved
@@ -195,25 +197,37 @@ stateDiagram-v2
         ExecuteIntervention --> AutoDebitAttempt: Soft Failure (Amount <= Cap)
         ExecuteIntervention --> DynamicLinkDispatched: AFA (>15k/1L) or Instrument Update
         ExecuteIntervention --> WhatsAppNudgeSent: UPI Intent Deep-Link
+        AutoDebitAttempt --> [*]
+        DynamicLinkDispatched --> [*]
+        WhatsAppNudgeSent --> [*]
     }
 
     RETRYING --> RECOVERED: Payment Captured / Succeeded (STOP_PAID)
-    RETRYING --> ESCALATED: Debit Failed & Attempts < 3
+    RETRYING --> ACTION_SCHEDULED: Soft Failure & Attempt == 1 (Silent Requeue + 48h Cooling)
+    RETRYING --> RETRYING: Soft Failure & Attempt == 2 (Light Digital Nudge + 48h Cooling)
+    RETRYING --> ESCALATED: Soft Failure & Attempt == 3 (Voice Bot & PTP Negotiation)
     RETRYING --> UNRECOVERABLE: Attempt Cap Hit (Max 3) / Customer Opt-Out
 
     state ESCALATED {
         [*] --> MultiChannelLadder
         MultiChannelLadder --> VoiceRecoveryBot: Hinglish Interactive Call
         MultiChannelLadder --> PTPNegotiation: Record Customer Commitment
-        PTPNegotiation --> PTP_FROZEN: PTP Date Set (STOP_PTP_ACTIVE)
+        VoiceRecoveryBot --> [*]
+        PTPNegotiation --> [*]
     }
 
-    PTP_FROZEN --> RETRYING: PTP Date + 24h Grace Elapsed
-    PTP_FROZEN --> RECOVERED: Paid During Grace Window
-
-    ESCALATED --> RETRYING: Retry #2 or #3 Queued (48h Cooling)
-    ESCALATED --> RECOVERED: Paid via Escalated Link / Call
+    ESCALATED --> PTP_FROZEN: PTP Date Set (STOP_PTP_ACTIVE)
+    ESCALATED --> RECOVERED: Paid via Escalated Link / Call (STOP_PAID)
     ESCALATED --> UNRECOVERABLE: 14-Day Dunning Ceiling / Opt-Out
+
+    state PTP_FROZEN {
+        [*] --> HoldActiveSchedule
+        HoldActiveSchedule --> GracePeriodTimer: Retries & Calls Frozen
+        GracePeriodTimer --> [*]
+    }
+
+    PTP_FROZEN --> RECOVERED: Paid During Grace Window (STOP_PAID)
+    PTP_FROZEN --> RETRYING: PTP Date + 24h Grace Elapsed Unpaid
 
     state RECOVERED {
         [*] --> LogAuditRecord
@@ -233,17 +247,19 @@ stateDiagram-v2
 
 ### State Machine Transition Specification
 
+> **Independent Stopping Invariant:** The recovery workflow enforces two parallel stopping ceilings: **Maximum 3 Retry Attempts** and **14-Day Dunning Window**. Whichever limit is reached first deterministically halts automated execution and transitions the case to `UNRECOVERABLE`.
+
 | State | Entry Trigger | Guard Conditions & Invariants | Exit Transition & Destination |
 | :--- | :--- | :--- | :--- |
-| **`DETECTED`** | Razorpay webhook (`payment.failed`, `subscription.halted`), drop-off telemetry, or B2B invoice due event. | Event payload must contain valid entity identifier and amount. | Immediate $\rightarrow$ **`DIAGNOSING`**. |
-| **`DIAGNOSING`** | Receipt of raw failure payload. | Evaluates 12 error taxonomy buckets, checks RBI AFA caps (₹15k / ₹1L), evaluates LLM confidence. | • $\text{Conf} \ge 0.85$ (Soft/Link) $\rightarrow$ **`ACTION_SCHEDULED`**<br>• $\text{Conf} < 0.70$ / Fraud Flag $\rightarrow$ **`HUMAN_REVIEW`**<br>• Hard Revocation/Expiry $\rightarrow$ **`UNRECOVERABLE`**. |
-| **`HUMAN_REVIEW`** | Low classifier confidence, ambiguous error text, or fraud risk. | Execution frozen pending human operator audit. | • Operator Approved $\rightarrow$ **`ACTION_SCHEDULED`**<br>• Operator Rejected $\rightarrow$ **`UNRECOVERABLE`**. |
+| **`DETECTED`** | Razorpay webhook (`payment.failed`, `subscription.halted`), drop-off telemetry, or invoice event. | Payload must contain valid entity ID and amount. | Immediate $\rightarrow$ **`DIAGNOSING`**. |
+| **`DIAGNOSING`** | Receipt of raw failure payload. | Evaluates 12 error taxonomy buckets, checks RBI AFA caps (₹15k / ₹1L), evaluates LLM confidence. | • Soft Failure / Recoverable Hard (Expired card/mandate) $\rightarrow$ **`ACTION_SCHEDULED`**<br>• $\text{Conf} < 0.70$ / Risk Flag $\rightarrow$ **`HUMAN_REVIEW`**<br>• Terminal Hard (Revoked / Dispute / Opt-Out) $\rightarrow$ **`UNRECOVERABLE`**. |
+| **`HUMAN_REVIEW`** | Low classifier confidence, ambiguous decline string, or fraud flag. | Automated execution frozen pending human operator audit. | • Operator Approved $\rightarrow$ **`ACTION_SCHEDULED`**<br>• Operator Rejected $\rightarrow$ **`UNRECOVERABLE`**. |
 | **`ACTION_SCHEDULED`** | Diagnosis completed or operator approval. | • TRAI Quiet Hours: 08:00–20:00 window enforced.<br>• Statutory $\ge 24\text{h}$ Pre-Debit notification queued.<br>• Salary cycle snapping (1st–5th / 25th–30th). | After $\ge 24\text{h}$ notice window and cooling interval elapse $\rightarrow$ **`RETRYING`**. |
-| **`RETRYING`** | Expiration of 24h pre-debit notice window and 48h cooling interval. | Increment `retry_count`; dispatch auto-debit API, dynamic AFA link, or UPI intent. | • Debit / Link Success $\rightarrow$ **`RECOVERED`**<br>• Debit Failed (`retry_count < 3`) $\rightarrow$ **`ESCALATED`**<br>• Max Retries Hit (3) / Opt-Out $\rightarrow$ **`UNRECOVERABLE`**. |
-| **`ESCALATED`** | Unsuccessful soft retry attempt or high-value drop-off. | Multi-channel ladder (WhatsApp interactive card $\rightarrow$ Hinglish Voice Call $\rightarrow$ PTP negotiation). | • Customer sets PTP $\rightarrow$ **`PTP_FROZEN`**<br>• Scheduled next retry $\rightarrow$ **`RETRYING`**<br>• Paid $\rightarrow$ **`RECOVERED`**<br>• Dunning ceiling (14d) reached $\rightarrow$ **`UNRECOVERABLE`**. |
-| **`PTP_FROZEN`** | Customer promises to pay by date $X$ (`STOP_PTP_ACTIVE`). | **All automated retries and calls frozen** until date $X + 24\text{ hours}$. | • Paid during window $\rightarrow$ **`RECOVERED`**<br>• Grace window expires unpaid $\rightarrow$ **`RETRYING`**. |
+| **`RETRYING`** | Expiration of 24h pre-debit notice window and 48h cooling interval. | Increments `retry_count`; executes auto-debit, dynamic AFA link, or UPI intent. | • Debit / Link Success $\rightarrow$ **`RECOVERED`**<br>• Attempt 1 Failed $\rightarrow$ **`ACTION_SCHEDULED`** (Silent Requeue)<br>• Attempt 2 Failed $\rightarrow$ **`RETRYING`** (Digital Nudge)<br>• Attempt 3 Failed $\rightarrow$ **`ESCALATED`** (Voice Bot / PTP)<br>• Max Retries (3) or Opt-Out $\rightarrow$ **`UNRECOVERABLE`**. |
+| **`ESCALATED`** | Final soft retry attempt or high-value overdue case. | Multi-channel conversational escalation (Hinglish Voice Recovery Call + PTP negotiation). | • Customer sets PTP $\rightarrow$ **`PTP_FROZEN`**<br>• Paid via call/link $\rightarrow$ **`RECOVERED`**<br>• 14-Day Dunning Ceiling reached $\rightarrow$ **`UNRECOVERABLE`**. |
+| **`PTP_FROZEN`** | Customer commits to a specific payment date (`STOP_PTP_ACTIVE`). | **All automated retries and calls frozen** until date $X + 24\text{ hours}$. | • Paid during grace window $\rightarrow$ **`RECOVERED`**<br>• Grace window expires unpaid $\rightarrow$ **`RETRYING`**. |
 | **`RECOVERED`** | Webhook received: `payment.captured`, `subscription.charged`, or `invoice.paid`. | **Terminal Success State:** Instantly purge pending retry queues (`STOP_PAID`); dispatch post-debit receipt with grievance details; log audit record. | Terminal $\rightarrow$ **`[*]`**. |
-| **`UNRECOVERABLE`** | Triggered by `STOP_MAX_RETRIES`, `STOP_MANDATE_EXPIRED`, `STOP_MANDATE_REVOKED`, `STOP_OPT_OUT`, or `STOP_DISPUTE_FRAUD`. | **Terminal Closed State:** Gracefully pause subscription, release resources, record immutable audit log, route case to human ops. | Terminal $\rightarrow$ **`[*]`**. |
+| **`UNRECOVERABLE`** | Triggered by `STOP_MAX_RETRIES` (3 attempts), 14-day ceiling, `STOP_MANDATE_REVOKED`, `STOP_OPT_OUT`, or `STOP_DISPUTE_FRAUD`. | **Terminal Closed State:** Gracefully pause subscription, release resources, record immutable audit log, route case to human ops. | Terminal $\rightarrow$ **`[*]`**. |
 
 ---
 
