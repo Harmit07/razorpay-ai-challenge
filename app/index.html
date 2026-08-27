@@ -26,7 +26,7 @@
       </div>
 
       <nav class="sidebar-nav">
-        <a class="nav-item active" href="#overview">
+        <a class="nav-item active" href="#overview" data-view="overview">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="7" height="7"></rect>
             <rect x="14" y="3" width="7" height="7"></rect>
@@ -36,7 +36,7 @@
           <span>Overview</span>
         </a>
 
-        <a class="nav-item" href="#benchmark">
+        <a class="nav-item" href="#benchmark" data-view="benchmark">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="20" x2="18" y2="10"></line>
             <line x1="12" y1="20" x2="12" y2="4"></line>
@@ -45,7 +45,7 @@
           <span>Benchmark</span>
         </a>
 
-        <a class="nav-item" href="#transactions">
+        <a class="nav-item" href="#transactions" data-view="transactions">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             <line x1="8" y1="6" x2="21" y2="6"></line>
             <line x1="8" y1="12" x2="21" y2="12"></line>
@@ -57,7 +57,7 @@
           <span>Audit Explorer</span>
         </a>
 
-        <a class="nav-item" href="#rules">
+        <a class="nav-item" href="#rules" data-view="rules">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
           </svg>
@@ -81,7 +81,7 @@
         <div class="header-breadcrumb">
           <span class="breadcrumb-root">Razorpay</span>
           <span class="breadcrumb-sep">/</span>
-          <span class="breadcrumb-active">Revenue Recovery</span>
+          <span class="breadcrumb-active" id="breadcrumbCurrent">Overview</span>
         </div>
 
         <div class="header-actions">
@@ -121,87 +121,131 @@
       <!-- Page Content (Padding 32px) -->
       <main class="page-content">
         
-        <!-- Page Title Block -->
-        <div class="page-header" id="overview">
-          <h1 class="page-title">Revenue Recovery Dashboard</h1>
-          <p class="page-subtitle">Automated root-cause diagnosis, compliant retry scheduling, and measured financial yield across 750 payment failures.</p>
+        <!-- ============================================================= -->
+        <!-- VIEW 1: OVERVIEW -->
+        <!-- ============================================================= -->
+        <div class="view-section active" id="view-overview">
+          
+          <div class="page-header">
+            <h1 class="page-title">Revenue Recovery Overview</h1>
+            <p class="page-subtitle">Real-time recovery performance across 750 payment failures (₹2.28 Crore portfolio volume).</p>
+          </div>
+
+          <!-- 4 KPI Cards -->
+          <section class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-label">Volume at Risk</div>
+              <div class="kpi-number" id="kpi-total-volume">₹2,27,71,364.25</div>
+              <div class="kpi-support">750 failed payment events</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-label">Recovered Revenue</div>
+              <div class="kpi-number" style="color: var(--color-primary);" id="kpi-ai-recovered">₹54,29,649.50</div>
+              <div class="kpi-support">
+                <span class="kpi-badge-lift">23.8% Yield</span>
+                <span>198 recovered transactions</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-label">Incremental Lift vs Baseline</div>
+              <div class="kpi-number" style="color: var(--color-primary);" id="kpi-incremental">+₹33,74,735.89</div>
+              <div class="kpi-support">
+                <span class="kpi-badge-lift">+164.2% Lift</span>
+                <span>over standard 24h retries</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-label">Statutory Compliance Breaches</div>
+              <div class="kpi-number" style="color: var(--color-success);" id="kpi-violations">0</div>
+              <div class="kpi-support">
+                <span class="kpi-badge-safe">100% Safe</span>
+                <span>599 baseline breaches avoided</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Pipeline Overview -->
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="section-heading">Recovery Pipeline Workflow</h2>
+                <p class="section-sub">End-to-end operational stages from failure ingestion to compliant settlement.</p>
+              </div>
+            </div>
+
+            <div class="pipeline-grid">
+              <div class="pipeline-card">
+                <div class="pipeline-step-num">1</div>
+                <h3>Root-Cause Diagnosis</h3>
+                <p>Every transaction failure is classified across 13 root causes (low balance, bank outage, authentication drop, AFA limit breach) to determine true recovery potential.</p>
+              </div>
+
+              <div class="pipeline-card">
+                <div class="pipeline-step-num">2</div>
+                <h3>Compliant Channels & Timing</h3>
+                <p>Schedules mandated 24h pre-debit notices, 1-click WhatsApp payment links, and salary-cycle retries strictly within TRAI quiet hours (08:00–20:00 IST).</p>
+              </div>
+
+              <div class="pipeline-card">
+                <div class="pipeline-step-num">3</div>
+                <h3>Automated Safety Stopping Rules</h3>
+                <p>Dunning touches instantly cease on customer mandate cancellations, active disputes, or customer payment promises (PTP) to protect trust and compliance.</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- Quick Navigation Actions -->
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="section-heading">Explore Portfolio Modules</h2>
+                <p class="section-sub">Navigate to detailed benchmark statistics, transaction audit records, or compliance rules.</p>
+              </div>
+            </div>
+
+            <div class="pipeline-grid">
+              <div class="pipeline-card" style="cursor:pointer;" onclick="switchView('benchmark')">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span class="badge-pill pill-info"><span class="badge-dot"></span>Analytics</span>
+                  <span style="font-size:12px; color:var(--color-primary); font-weight:500;">View →</span>
+                </div>
+                <h3>Comparative Benchmark</h3>
+                <p>Inspect the head-to-head performance lift against the naive 24h fixed retry strategy across revenue and compliance metrics.</p>
+              </div>
+
+              <div class="pipeline-card" style="cursor:pointer;" onclick="switchView('transactions')">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span class="badge-pill pill-info"><span class="badge-dot"></span>Data Explorer</span>
+                  <span style="font-size:12px; color:var(--color-primary); font-weight:500;">View →</span>
+                </div>
+                <h3>Transaction & Audit Explorer</h3>
+                <p>Search all 750 transactions with live filters, edge-case tags, and step-by-step regulatory audit drawer inspection.</p>
+              </div>
+
+              <div class="pipeline-card" style="cursor:pointer;" onclick="switchView('rules')">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span class="badge-pill pill-success"><span class="badge-dot"></span>Statutory</span>
+                  <span style="font-size:12px; color:var(--color-primary); font-weight:500;">View →</span>
+                </div>
+                <h3>Compliance Rules & Safeguards</h3>
+                <p>Review the hard-coded Indian regulatory frameworks (RBI 2026 E-Mandate, TRAI Quiet Hours, CPA 2019, DPDP 2023).</p>
+              </div>
+            </div>
+          </section>
+
         </div>
 
-        <!-- 4 KPI Cards -->
-        <section class="kpi-grid">
+        <!-- ============================================================= -->
+        <!-- VIEW 2: BENCHMARK -->
+        <!-- ============================================================= -->
+        <div class="view-section" id="view-benchmark">
           
-          <div class="kpi-card">
-            <div class="kpi-label">Volume at Risk</div>
-            <div class="kpi-number" id="kpi-total-volume">₹2,27,71,364.25</div>
-            <div class="kpi-support">750 failed transactions ingested</div>
-          </div>
-
-          <div class="kpi-card">
-            <div class="kpi-label">Recovered Revenue</div>
-            <div class="kpi-number" style="color: var(--color-primary);" id="kpi-ai-recovered">₹54,29,649.50</div>
-            <div class="kpi-support">
-              <span class="kpi-badge-lift">23.8% Yield</span>
-              <span>198 recovered transactions</span>
-            </div>
-          </div>
-
-          <div class="kpi-card">
-            <div class="kpi-label">Incremental Lift vs Baseline</div>
-            <div class="kpi-number" style="color: var(--color-primary);" id="kpi-incremental">+₹33,74,735.89</div>
-            <div class="kpi-support">
-              <span class="kpi-badge-lift">+164.2% Lift</span>
-              <span>over standard 24h retries</span>
-            </div>
-          </div>
-
-          <div class="kpi-card">
-            <div class="kpi-label">Statutory Compliance Breaches</div>
-            <div class="kpi-number" style="color: var(--color-success);" id="kpi-violations">0</div>
-            <div class="kpi-support">
-              <span class="kpi-badge-safe">100% Safe</span>
-              <span>599 baseline violations prevented</span>
-            </div>
-          </div>
-
-        </section>
-
-        <!-- Pipeline Overview (How it works) -->
-        <section class="panel">
-          <div class="panel-header">
-            <div>
-              <h2 class="section-heading">Recovery Pipeline Workflow</h2>
-              <p class="section-sub">End-to-end operational stages from initial failure ingestion to final settlement.</p>
-            </div>
-          </div>
-
-          <div class="pipeline-grid">
-            <div class="pipeline-card">
-              <div class="pipeline-step-num">1</div>
-              <h3>Root-Cause Diagnosis</h3>
-              <p>Every transaction failure is classified across 13 root causes (low balance, bank outage, authentication drop, AFA limit breach) to determine true recovery potential.</p>
-            </div>
-
-            <div class="pipeline-card">
-              <div class="pipeline-step-num">2</div>
-              <h3>Compliant Channels & Timing</h3>
-              <p>Schedules mandated 24h pre-debit notices, 1-click WhatsApp payment links, and salary-cycle retries strictly within TRAI quiet hours (08:00–20:00 IST).</p>
-            </div>
-
-            <div class="pipeline-card">
-              <div class="pipeline-step-num">3</div>
-              <h3>Automated Safety Stopping Rules</h3>
-              <p>Dunning touches instantly cease on customer mandate cancellations, active disputes, or customer payment promises (PTP) to protect trust and compliance.</p>
-            </div>
-          </div>
-        </section>
-
-        <!-- Performance Comparison (Benchmark) -->
-        <section class="panel" id="benchmark">
-          <div class="panel-header">
-            <div>
-              <h2 class="section-heading">Head-to-Head Performance Comparison</h2>
-              <p class="section-sub">Comparing Smart Recovery Agent vs. Standard 24-Hour Fixed Retry on the same 750 transactions.</p>
-            </div>
+          <div class="page-header">
+            <h1 class="page-title">Comparative Benchmark Analysis</h1>
+            <p class="page-subtitle">Head-to-head comparison of Smart Recovery Agent vs. Standard 24-Hour Fixed Retry on the same 750 transactions.</p>
           </div>
 
           <div class="benchmark-row">
@@ -250,8 +294,63 @@
             </div>
           </div>
 
+          <!-- Executive Summary Table -->
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="section-heading">Detailed Comparative Metric Breakdown</h2>
+                <p class="section-sub">Measured financial outcomes and operational efficiency across the 14-day horizon.</p>
+              </div>
+            </div>
+
+            <div class="table-wrapper">
+              <table class="fintech-table">
+                <thead>
+                  <tr>
+                    <th>Metric</th>
+                    <th>Standard 24h Baseline</th>
+                    <th>Smart Recovery Agent</th>
+                    <th>Measured Advantage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Total Money Recovered</strong></td>
+                    <td class="cell-amount">₹20,54,913.61</td>
+                    <td class="cell-amount" style="color:var(--color-primary);">₹54,29,649.50</td>
+                    <td><span class="badge-pill pill-success">+₹33,74,735.89 (+164.2% Lift)</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Recovery Yield Rate</strong></td>
+                    <td>9.02%</td>
+                    <td style="color:var(--color-primary); font-weight:600;">23.84%</td>
+                    <td><span class="badge-pill pill-success">+14.82% Absolute Lift</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Successful Transactions</strong></td>
+                    <td>51 recovered</td>
+                    <td style="font-weight:600;">198 recovered</td>
+                    <td><span class="badge-pill pill-success">+147 Transactions</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Statutory Compliance Violations</strong></td>
+                    <td style="color:var(--color-error); font-weight:600;">599 Violations ⚠️</td>
+                    <td style="color:var(--color-success); font-weight:600;">0 Violations 🛡️</td>
+                    <td><span class="badge-pill pill-success">100% Risk Elimination</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Wasted Blind API Retries</strong></td>
+                    <td>750 blind retries</td>
+                    <td style="color:var(--color-success); font-weight:600;">0 blind retries</td>
+                    <td><span class="badge-pill pill-info">Targeted Interventions</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
           <!-- Safeguard Metrics -->
-          <div class="guard-pill-row" id="rules">
+          <div class="guard-pill-row">
             <span class="guard-chip"><strong>424</strong> 24h Pre-Debit Notices Sent</span>
             <span class="guard-chip"><strong>114</strong> AFA Limits Respected (>₹15k / >₹1L)</span>
             <span class="guard-chip"><strong>32</strong> Revoked Mandates Halted</span>
@@ -259,134 +358,157 @@
             <span class="guard-chip"><strong>20</strong> Dispute Freezes Enforced</span>
             <span class="guard-chip"><strong>33</strong> Payment Promises Honored</span>
           </div>
-        </section>
 
-        <!-- Transaction & Audit Explorer Table -->
-        <section class="panel" id="transactions">
-          <div class="panel-header">
-            <div>
-              <h2 class="section-heading">Transaction & Audit Explorer</h2>
-              <p class="section-sub">Inspect individual payment events, state changes, and statutory audit trails.</p>
+        </div>
+
+        <!-- ============================================================= -->
+        <!-- VIEW 3: TRANSACTIONS & AUDIT EXPLORER -->
+        <!-- ============================================================= -->
+        <div class="view-section" id="view-transactions">
+          
+          <div class="page-header">
+            <h1 class="page-title">Transaction & Audit Explorer</h1>
+            <p class="page-subtitle">Search individual payment events, filter by test case tags, and inspect step-by-step regulatory audit logs.</p>
+          </div>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="section-heading">Transaction Records (750 Ingested)</h2>
+                <p class="section-sub">Select any transaction to inspect the complete state transition timeline.</p>
+              </div>
+
+              <div class="table-controls">
+                <input type="text" id="searchInput" class="input-search" placeholder="Search Txn ID, Method, or Reason..." onkeyup="filterTransactions()">
+                
+                <select id="stateFilter" class="input-select" onchange="filterTransactions()">
+                  <option value="ALL">All Outcomes</option>
+                  <option value="RECOVERED">Recovered</option>
+                  <option value="UNRECOVERABLE">Compliantly Stopped</option>
+                  <option value="HUMAN_REVIEW">Human Review</option>
+                </select>
+
+                <select id="edgeFilter" class="input-select" onchange="filterTransactions()">
+                  <option value="ALL">All Test Cases</option>
+                  <option value="EDGE_01">EDGE-01: Zombie Retry Cap (3x)</option>
+                  <option value="EDGE_02">EDGE-02: ₹15,001 AFA Threshold</option>
+                  <option value="EDGE_03">EDGE-03: ₹1,00,001 Exemption</option>
+                  <option value="EDGE_04">EDGE-04: Expiring Mandate</option>
+                  <option value="EDGE_05">EDGE-05: Quiet Hours Delay</option>
+                  <option value="EDGE_06">EDGE-06: PTP Grace Window</option>
+                  <option value="EDGE_07">EDGE-07: Mandate Revoked</option>
+                  <option value="EDGE_08">EDGE-08: Active Dispute Freeze</option>
+                  <option value="EDGE_09">EDGE-09: MSMED 45-Day Cap</option>
+                  <option value="EDGE_10">EDGE-10: Ambiguous Error Triage</option>
+                </select>
+              </div>
             </div>
 
-            <div class="table-controls">
-              <input type="text" id="searchInput" class="input-search" placeholder="Search Txn ID, Method, or Reason..." onkeyup="filterTransactions()">
+            <div class="table-wrapper">
+              <table class="fintech-table" id="transactionsTable">
+                <thead>
+                  <tr>
+                    <th>Transaction ID</th>
+                    <th>Amount (INR)</th>
+                    <th>Method</th>
+                    <th>Failure Reason</th>
+                    <th>Category</th>
+                    <th>Classification</th>
+                    <th>Compliance State</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+        </div>
+
+        <!-- ============================================================= -->
+        <!-- VIEW 4: COMPLIANCE RULES -->
+        <!-- ============================================================= -->
+        <div class="view-section" id="view-rules">
+          
+          <div class="page-header">
+            <h1 class="page-title">Programmatic Statutory Compliance Rules</h1>
+            <p class="page-subtitle">Hard-coded Indian regulatory invariants that the AI recovery router cannot bypass under any circumstances.</p>
+          </div>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="section-heading">Codified Regulatory Frameworks</h2>
+                <p class="section-sub">Statutory citations and deterministic rules enforced across every state transition.</p>
+              </div>
+              <div class="simulation-pill">
+                <span class="status-dot-green"></span>
+                <span>100% Invariants Verified</span>
+              </div>
+            </div>
+
+            <div class="pipeline-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
               
-              <select id="stateFilter" class="input-select" onchange="filterTransactions()">
-                <option value="ALL">All Outcomes</option>
-                <option value="RECOVERED">Recovered</option>
-                <option value="UNRECOVERABLE">Compliantly Stopped</option>
-                <option value="HUMAN_REVIEW">Human Review</option>
-              </select>
-
-              <select id="edgeFilter" class="input-select" onchange="filterTransactions()">
-                <option value="ALL">All Test Cases</option>
-                <option value="EDGE_01">EDGE-01: Zombie Retry Cap (3x)</option>
-                <option value="EDGE_02">EDGE-02: ₹15,001 AFA Threshold</option>
-                <option value="EDGE_03">EDGE-03: ₹1,00,001 Exemption</option>
-                <option value="EDGE_04">EDGE-04: Expiring Mandate</option>
-                <option value="EDGE_05">EDGE-05: Quiet Hours Delay</option>
-                <option value="EDGE_06">EDGE-06: PTP Grace Window</option>
-                <option value="EDGE_07">EDGE-07: Mandate Revoked</option>
-                <option value="EDGE_08">EDGE-08: Active Dispute Freeze</option>
-                <option value="EDGE_09">EDGE-09: MSMED 45-Day Cap</option>
-                <option value="EDGE_10">EDGE-10: Ambiguous Error Triage</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="table-wrapper">
-            <table class="fintech-table" id="transactionsTable">
-              <thead>
-                <tr>
-                  <th>Transaction ID</th>
-                  <th>Amount (INR)</th>
-                  <th>Method</th>
-                  <th>Failure Reason</th>
-                  <th>Category</th>
-                  <th>Classification</th>
-                  <th>Compliance State</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="tableBody">
-                <!-- Populated dynamically -->
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- Compliance Rules & Statutory Safeguards Section -->
-        <section class="panel" id="rules">
-          <div class="panel-header">
-            <div>
-              <h2 class="section-heading">Programmatic Statutory Compliance Rules</h2>
-              <p class="section-sub">Hard-coded Indian regulatory invariants that the AI recovery router cannot bypass under any circumstances.</p>
-            </div>
-            <div class="simulation-pill">
-              <span class="status-dot-green"></span>
-              <span>100% Invariants Verified</span>
-            </div>
-          </div>
-
-          <div class="pipeline-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
-            
-            <div class="pipeline-card">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span class="badge-pill pill-info"><span class="badge-dot"></span>RBI Framework</span>
-                <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">RBI/DPSS/2026-27/396</span>
+              <div class="pipeline-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span class="badge-pill pill-info"><span class="badge-dot"></span>RBI Framework</span>
+                  <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">RBI/DPSS/2026-27/396</span>
+                </div>
+                <h3>Mandatory 24h Pre-Debit Notice</h3>
+                <p>Every automated recurring debit retry strictly requires a customer notification delivered at least 24 hours in advance via WhatsApp/SMS containing an instant opt-out link.</p>
               </div>
-              <h3>Mandatory 24h Pre-Debit Notice</h3>
-              <p>Every automated recurring debit retry strictly requires a customer notification delivered at least 24 hours in advance via WhatsApp/SMS containing an instant opt-out link.</p>
-            </div>
 
-            <div class="pipeline-card">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span class="badge-pill pill-info"><span class="badge-dot"></span>AFA Limit Cap</span>
-                <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">RBI AFA 2026</span>
+              <div class="pipeline-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span class="badge-pill pill-info"><span class="badge-dot"></span>AFA Limit Cap</span>
+                  <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">RBI AFA 2026</span>
+                </div>
+                <h3>Statutory ₹15k / ₹1L Ceilings</h3>
+                <p>Recurring payments > ₹15,000 prohibit direct auto-debits and automatically convert to dynamic AFA OTP payment links. Relaxed to ₹1,00,000 for Mutual Funds, Insurance, and Credit Cards.</p>
               </div>
-              <h3>Statutory ₹15k / ₹1L Ceilings</h3>
-              <p>Recurring payments > ₹15,000 prohibit direct auto-debits and automatically convert to dynamic AFA OTP payment links. Relaxed to ₹1,00,000 for Mutual Funds, Insurance, and Credit Cards.</p>
-            </div>
 
-            <div class="pipeline-card">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span class="badge-pill pill-warning"><span class="badge-dot"></span>TRAI TCCCPR</span>
-                <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">08:00–20:00 IST</span>
+              <div class="pipeline-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span class="badge-pill pill-warning"><span class="badge-dot"></span>TRAI TCCCPR</span>
+                  <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">08:00–20:00 IST</span>
+                </div>
+                <h3>Customer Quiet Hours & DND</h3>
+                <p>All outbound customer touches generated outside 08:00–20:00 IST are queued until next morning. Promotional messages to National DND registry numbers are strictly suppressed.</p>
               </div>
-              <h3>Customer Quiet Hours & DND</h3>
-              <p>All outbound customer touches generated outside 08:00–20:00 IST are queued until next morning. Promotional messages to National DND registry numbers are strictly suppressed.</p>
-            </div>
 
-            <div class="pipeline-card">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span class="badge-pill pill-error"><span class="badge-dot"></span>CPA 2019</span>
-                <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">Dispute Quarantine</span>
+              <div class="pipeline-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span class="badge-pill pill-error"><span class="badge-dot"></span>CPA 2019</span>
+                  <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">Dispute Quarantine</span>
+                </div>
+                <h3>Active Dispute & Chargeback Freeze</h3>
+                <p>When a transaction is flagged with an active chargeback or customer fraud dispute, all automated retries and dunning communications instantly freeze (<code>STOP_DISPUTE_FRAUD</code>).</p>
               </div>
-              <h3>Active Dispute & Chargeback Freeze</h3>
-              <p>When a transaction is flagged with an active chargeback or customer fraud dispute, all automated retries and dunning communications instantly freeze (<code>STOP_DISPUTE_FRAUD</code>).</p>
-            </div>
 
-            <div class="pipeline-card">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span class="badge-pill pill-success"><span class="badge-dot"></span>DPDP Act 2023</span>
-                <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">PII Protection</span>
+              <div class="pipeline-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span class="badge-pill pill-success"><span class="badge-dot"></span>DPDP Act 2023</span>
+                  <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">PII Protection</span>
+                </div>
+                <h3>Customer Data Privacy & Masking</h3>
+                <p>All customer identifiers (phone numbers, email addresses) are permanently masked (e.g. <code>+91-9876****4321</code>) across all runtime audit trails, logs, and database records.</p>
               </div>
-              <h3>Customer Data Privacy & Masking</h3>
-              <p>All customer identifiers (phone numbers, email addresses) are permanently masked (e.g. <code>+91-9876****4321</code>) across all runtime audit trails, logs, and database records.</p>
-            </div>
 
-            <div class="pipeline-card">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span class="badge-pill pill-neutral"><span class="badge-dot"></span>MSMED Act 2006</span>
-                <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">Section 15 & 16</span>
+              <div class="pipeline-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span class="badge-pill pill-neutral"><span class="badge-dot"></span>MSMED Act 2006</span>
+                  <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">Section 15 & 16</span>
+                </div>
+                <h3>B2B 45-Day Overdue Ceiling</h3>
+                <p>Commercial invoices approaching the statutory 45-day overdue boundary are automatically clamped and escalated directly to finance operations rather than standard customer nudges.</p>
               </div>
-              <h3>B2B 45-Day Overdue Ceiling</h3>
-              <p>Commercial invoices approaching the statutory 45-day overdue boundary are automatically clamped and escalated directly to finance operations rather than standard customer nudges.</p>
-            </div>
 
-          </div>
-        </section>
+            </div>
+          </section>
+
+        </div>
 
       </main>
     </div>

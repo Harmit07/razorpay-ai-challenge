@@ -287,6 +287,20 @@ body {
   width: 100%;
 }
 
+.view-section {
+  display: none;
+}
+
+.view-section.active {
+  display: block;
+  animation: viewFadeIn 150ms ease-out;
+}
+
+@keyframes viewFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .page-header {
   margin-bottom: 24px;
 }

@@ -9,25 +9,71 @@ let currentViewingTxnId = null;
 
 // Initialize Dashboard
 document.addEventListener("DOMContentLoaded", async () => {
-  setupSidebarNavigation();
+  setupViewRouting();
   await loadSummaryData();
   await loadTransactions();
 });
 
-function setupSidebarNavigation() {
+const VIEW_TITLES = {
+  overview: "Overview",
+  benchmark: "Comparative Benchmark",
+  transactions: "Audit Explorer",
+  rules: "Compliance Rules",
+};
+
+function setupViewRouting() {
+  const initialView = window.location.hash ? window.location.hash.replace("#", "") : "overview";
+  switchView(initialView in VIEW_TITLES ? initialView : "overview", false);
+
+  window.addEventListener("hashchange", () => {
+    const currentHash = window.location.hash.replace("#", "");
+    if (currentHash in VIEW_TITLES) {
+      switchView(currentHash, false);
+    }
+  });
+
   const navItems = document.querySelectorAll(".sidebar-nav .nav-item");
   navItems.forEach(item => {
     item.addEventListener("click", (e) => {
       e.preventDefault();
-      navItems.forEach(i => i.classList.remove("active"));
-      item.classList.add("active");
-      const targetId = item.getAttribute("href").replace("#", "");
-      const targetEl = document.getElementById(targetId);
-      if (targetEl) {
-        targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+      const viewName = item.getAttribute("data-view") || item.getAttribute("href").replace("#", "");
+      switchView(viewName, true);
     });
   });
+}
+
+function switchView(viewName, updateHash = true) {
+  if (!(viewName in VIEW_TITLES)) viewName = "overview";
+
+  // 1. Hide all view sections, show active view
+  document.querySelectorAll(".view-section").forEach(sec => sec.classList.remove("active"));
+  const targetSection = document.getElementById(`view-${viewName}`);
+  if (targetSection) {
+    targetSection.classList.add("active");
+  }
+
+  // 2. Update sidebar nav active state
+  document.querySelectorAll(".sidebar-nav .nav-item").forEach(item => {
+    const itemTarget = item.getAttribute("data-view") || item.getAttribute("href").replace("#", "");
+    if (itemTarget === viewName) {
+      item.classList.add("active");
+    } else {
+      item.classList.remove("active");
+    }
+  });
+
+  // 3. Update top breadcrumb
+  const breadcrumb = document.getElementById("breadcrumbCurrent");
+  if (breadcrumb) {
+    breadcrumb.innerText = VIEW_TITLES[viewName];
+  }
+
+  // 4. Update browser URL hash
+  if (updateHash) {
+    window.location.hash = viewName;
+  }
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 async function loadSummaryData() {
