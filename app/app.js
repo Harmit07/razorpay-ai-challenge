@@ -1,9 +1,11 @@
 /**
- * Front-end controller for Razorpay AI Revenue Recovery Agent Dashboard.
+ * Front-end controller for Razorpay Revenue Recovery Dashboard.
+ * Clean, lightweight, frictionless data presentation.
  */
 
 let allTransactions = [];
 let allAuditRecords = [];
+let currentViewingTxnId = null;
 
 // Initialize Dashboard
 document.addEventListener("DOMContentLoaded", async () => {
@@ -42,7 +44,7 @@ function renderTransactions(txns) {
   tbody.innerHTML = "";
 
   if (txns.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 24px; color: var(--text-muted);">No matching transactions found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 28px; color: var(--text-muted);">No matching transactions found.</td></tr>`;
     return;
   }
 
@@ -67,33 +69,43 @@ function renderTransactions(txns) {
 
     let compBadge = `<span class="badge badge-success">Clear</span>`;
     if (t.dispute_active) {
-      compBadge = `<span class="badge badge-danger">Dispute Locked (CPA 2019)</span>`;
+      compBadge = `<span class="badge badge-danger">Dispute Locked</span>`;
     } else if (t.error_reason === "mandate_cancelled_by_user") {
       compBadge = `<span class="badge badge-warning">Revoked Mandate</span>`;
     } else if (t.is_dnd) {
       compBadge = `<span class="badge badge-warning">DND Suppressed</span>`;
     } else if (isRecurring && t.amount > statutoryCap) {
-      compBadge = `<span class="badge badge-shield">AFA OTP Link Enforced</span>`;
+      compBadge = `<span class="badge badge-shield">AFA OTP Enforced</span>`;
     } else if (isRecurring && isExempt && t.amount > 15000 && t.amount <= 100000) {
       compBadge = `<span class="badge badge-shield" style="background:rgba(16,185,129,0.15); color:#34d399;">AFA Exempt (₹1L Cap)</span>`;
     } else if (isRecurring) {
       compBadge = `<span class="badge badge-purple">24h Notice Queued</span>`;
     }
 
-    const edgeBadge = t.edge_case_tag ? `<br><span style="font-size:10px; color:#38bdf8;">${t.edge_case_tag}</span>` : "";
+    const edgeBadge = t.edge_case_tag ? `<br><span style="font-size:10px; color:#38bdf8; font-family:var(--font-mono);">${t.edge_case_tag}</span>` : "";
 
     tr.innerHTML = `
       <td class="mono"><strong>${t.txn_id}</strong>${edgeBadge}</td>
       <td class="mono">₹${t.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-      <td>${t.method}</td>
+      <td>${formatPaymentMethod(t.method)}</td>
       <td><span style="font-family:var(--font-mono); font-size:11px;">${t.error_reason}</span></td>
-      <td><span style="font-size:11px;">${t.category}</span></td>
+      <td><span style="font-size:11px; color:var(--text-muted);">${t.category}</span></td>
       <td>${classBadge}</td>
       <td>${compBadge}</td>
-      <td><button class="btn-view" onclick="openAuditModal('${t.txn_id}')">View Audit Trail</button></td>
+      <td><button class="btn-inspect" onclick="openAuditModal('${t.txn_id}')">Inspect</button></td>
     `;
     tbody.appendChild(tr);
   });
+}
+
+function formatPaymentMethod(m) {
+  if (!m) return "Card";
+  if (m === "upi_autopay") return "UPI AutoPay";
+  if (m === "upi_collect") return "UPI Collect";
+  if (m === "card") return "Credit / Debit Card";
+  if (m === "nach") return "e-NACH";
+  if (m === "netbanking") return "Netbanking";
+  return m;
 }
 
 function filterTransactions() {
@@ -106,7 +118,8 @@ function filterTransactions() {
       t.txn_id.toLowerCase().includes(query) ||
       (t.mandate_id && t.mandate_id.toLowerCase().includes(query)) ||
       (t.customer_phone_masked && t.customer_phone_masked.includes(query)) ||
-      t.error_reason.toLowerCase().includes(query);
+      t.error_reason.toLowerCase().includes(query) ||
+      (t.method && t.method.toLowerCase().includes(query));
 
     let matchesEdge = true;
     if (edgeFilter !== "ALL") {
@@ -119,20 +132,18 @@ function filterTransactions() {
   renderTransactions(filtered);
 }
 
-let currentViewingTxnId = null;
-
 async function openAuditModal(txn_id) {
   currentViewingTxnId = txn_id;
   const modal = document.getElementById("auditModal");
   const modalBody = document.getElementById("modalBody");
-  document.getElementById("modalTxnId").innerText = `Audit Log Trail: ${txn_id}`;
+  document.getElementById("modalTxnId").innerText = `Transaction Trail: ${txn_id}`;
 
   const targetTxn = allTransactions.find((t) => t.txn_id === txn_id);
   if (targetTxn) {
-    document.getElementById("modalCustomer").innerText = `Customer Masked: ${targetTxn.customer_phone_masked || targetTxn.customer_email_masked} | Amount: ₹${targetTxn.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+    document.getElementById("modalCustomer").innerText = `Customer (DPDP Masked): ${targetTxn.customer_phone_masked || targetTxn.customer_email_masked} • Amount: ₹${targetTxn.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
   }
 
-  modalBody.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-muted);">Loading immutable audit records...</div>`;
+  modalBody.innerHTML = `<div style="text-align:center; padding: 24px; color: var(--text-muted);">Loading audit timeline...</div>`;
   modal.style.display = "flex";
 
   try {
@@ -140,7 +151,6 @@ async function openAuditModal(txn_id) {
     if (res.ok) {
       const records = await res.json();
       if (records.length === 0) {
-        // Fallback demo render
         renderSyntheticTimeline(targetTxn);
       } else {
         renderAuditTimeline(records);
@@ -151,6 +161,77 @@ async function openAuditModal(txn_id) {
   } catch (e) {
     renderSyntheticTimeline(targetTxn);
   }
+}
+
+function renderAuditTimeline(records) {
+  const modalBody = document.getElementById("modalBody");
+  modalBody.innerHTML = "";
+
+  records.forEach((r, idx) => {
+    let stateBadge = `<span class="badge badge-success">${r.to_state}</span>`;
+    if (r.to_state === "UNRECOVERABLE") stateBadge = `<span class="badge badge-danger">STOPPED</span>`;
+    if (r.to_state === "HUMAN_REVIEW" || r.to_state === "PTP_FROZEN") stateBadge = `<span class="badge badge-warning">${r.to_state}</span>`;
+
+    const card = document.createElement("div");
+    card.className = "timeline-card";
+    card.innerHTML = `
+      <div class="timeline-header">
+        <div class="timeline-step">
+          <span>Step ${idx + 1}: ${formatEventType(r.event_type)}</span>
+          ${stateBadge}
+        </div>
+        <div class="timeline-time">${r.timestamp.substring(0, 19).replace("T", " ")} UTC</div>
+      </div>
+
+      <div class="timeline-grid">
+        <div class="timeline-field">Channel: <span>${r.channel}</span></div>
+        <div class="timeline-field">Statutory Citation: <span>${r.statutory_rule_applied}</span></div>
+        <div class="timeline-field">Policy Rule: <span>${r.internal_policy_applied}</span></div>
+        ${r.stop_rule_triggered ? `<div class="timeline-field">Stopping Rule: <span style="color:#ef4444; font-weight:700;">${r.stop_rule_triggered}</span></div>` : ""}
+      </div>
+
+      <div class="timeline-rationale">
+        ${r.decision_rationale}
+      </div>
+    `;
+    modalBody.appendChild(card);
+  });
+}
+
+function formatEventType(evt) {
+  if (!evt) return "Event";
+  return evt.replace(/_/g, " ");
+}
+
+function renderSyntheticTimeline(t) {
+  if (!t) return;
+  const mockRecords = [
+    {
+      from_state: "DETECTED",
+      to_state: "DIAGNOSING",
+      timestamp: t.timestamp,
+      event_type: "FAILURE_INGESTED",
+      channel: "GATEWAY_WEBHOOK",
+      statutory_rule_applied: "NONE",
+      internal_policy_applied: "RULE_ENGINE_TRIAGE",
+      decision_rationale: `Ingested failure event: ${t.error_reason}. Diagnostic checks initiated.`
+    },
+    {
+      from_state: "DIAGNOSING",
+      to_state: "ACTION_SCHEDULED",
+      timestamp: t.timestamp,
+      event_type: "ACTION_PLAN_SCHEDULED",
+      channel: "AUTO_DEBIT_API",
+      statutory_rule_applied: t.amount > 15000 ? "RBI_DPSS_2026_27_396_15K_CAP" : "RBI_2026_PRE_DEBIT_24H_NOTICE_REQUIRED",
+      internal_policy_applied: "48H_COOLING_INTERVAL_SALARY_CYCLE_SNAP",
+      decision_rationale: t.amount > 15000 ? "Amount exceeds statutory AFA ceiling. Direct auto-debit prohibited; dynamic AFA OTP checkout link dispatched." : "Mandated >=24h pre-debit alert queued with customer opt-out link."
+    }
+  ];
+  renderAuditTimeline(mockRecords);
+}
+
+function closeModal() {
+  document.getElementById("auditModal").style.display = "none";
 }
 
 function exportFullAuditJson() {
@@ -165,68 +246,6 @@ function exportCurrentTxnAudit() {
   if (currentViewingTxnId) {
     window.open(`/api/export/txn-json/${currentViewingTxnId}`, "_blank");
   }
-}
-
-function renderAuditTimeline(records) {
-  const modalBody = document.getElementById("modalBody");
-  modalBody.innerHTML = "";
-
-  records.forEach((r, idx) => {
-    let dotClass = "dot-success";
-    if (r.to_state === "UNRECOVERABLE") dotClass = "dot-danger";
-    if (r.to_state === "HUMAN_REVIEW" || r.to_state === "PTP_FROZEN") dotClass = "dot-warning";
-
-    const stepEl = document.createElement("div");
-    stepEl.className = "timeline-step";
-    stepEl.innerHTML = `
-      <div class="timeline-dot ${dotClass}"></div>
-      <div class="step-card">
-        <div class="step-meta">
-          <span>Step ${idx + 1}: ${r.from_state} ➔ ${r.to_state}</span>
-          <span>${r.timestamp.substring(0, 19)} UTC</span>
-        </div>
-        <div class="step-title">${r.event_type} (${r.channel})</div>
-        <div class="step-detail-row">
-          <div><strong>Statutory Citation:</strong> <span class="rule-badge">${r.statutory_rule_applied}</span></div>
-          <div><strong>Internal Policy:</strong> <span style="color:#c084fc;">${r.internal_policy_applied}</span></div>
-          ${r.stop_rule_triggered ? `<div><strong>Stopping Rule:</strong> <span style="color:#ef4444; font-weight:700;">${r.stop_rule_triggered}</span></div>` : ""}
-          <div style="margin-top:4px; color:#e2e8f0;">📝 <em>"${r.decision_rationale}"</em></div>
-        </div>
-      </div>
-    `;
-    modalBody.appendChild(stepEl);
-  });
-}
-
-function renderSyntheticTimeline(t) {
-  if (!t) return;
-  const mockRecords = [
-    {
-      from_state: "DETECTED",
-      to_state: "DIAGNOSING",
-      timestamp: t.timestamp,
-      event_type: "FAILURE_INGESTED",
-      channel: "GATEWAY_WEBHOOK",
-      statutory_rule_applied: "NONE",
-      internal_policy_applied: "RULE_ENGINE_TRIAGE",
-      decision_rationale: `Ingested failure event ${t.error_reason}. Invariant checks triggered.`
-    },
-    {
-      from_state: "DIAGNOSING",
-      to_state: "ACTION_SCHEDULED",
-      timestamp: t.timestamp,
-      event_type: "ACTION_PLAN_GENERATED",
-      channel: "AUTO_DEBIT_API",
-      statutory_rule_applied: t.amount > 15000 ? "RBI_DPSS_2026_27_396_15K_CAP" : "RBI_2026_PRE_DEBIT_24H_NOTICE_REQUIRED",
-      internal_policy_applied: "48H_COOLING_INTERVAL_SALARY_CYCLE_SNAP",
-      decision_rationale: t.amount > 15000 ? "Amount exceeds ₹15k statutory AFA cap. Direct auto-debit prohibited; dynamic AFA OTP checkout link dispatched." : "Mandated >=24h pre-debit alert queued with customer opt-out link."
-    }
-  ];
-  renderAuditTimeline(mockRecords);
-}
-
-function closeModal(event) {
-  document.getElementById("auditModal").style.display = "none";
 }
 
 function runDemoSimulation() {
