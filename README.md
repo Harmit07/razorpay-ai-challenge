@@ -205,8 +205,8 @@ stateDiagram-v2
     RETRYING --> RECOVERED: Payment Captured / Succeeded (STOP_PAID)
     RETRYING --> ACTION_SCHEDULED: Soft Failure & Attempt == 1 (Silent Requeue + 48h Cooling)
     RETRYING --> RETRYING: Soft Failure & Attempt == 2 (Light Digital Nudge + 48h Cooling)
-    RETRYING --> ESCALATED: Soft Failure & Attempt == 3 (Voice Bot & PTP Negotiation)
-    RETRYING --> UNRECOVERABLE: Attempt Cap Hit (Max 3) / Customer Opt-Out
+    RETRYING --> ESCALATED: Soft Failure & Attempt == 3 (Debit Cap Hit: Handoff to Voice Bot & PTP)
+    RETRYING --> UNRECOVERABLE: Customer Opt-Out (STOP_OPT_OUT)
 
     state ESCALATED {
         [*] --> MultiChannelLadder
@@ -218,7 +218,7 @@ stateDiagram-v2
 
     ESCALATED --> PTP_FROZEN: PTP Date Set (STOP_PTP_ACTIVE)
     ESCALATED --> RECOVERED: Paid via Escalated Link / Call (STOP_PAID)
-    ESCALATED --> UNRECOVERABLE: 14-Day Dunning Ceiling / Opt-Out
+    ESCALATED --> UNRECOVERABLE: Voice Outreach Exhausted / 14-Day Dunning Ceiling (STOP_MAX_RETRIES)
 
     state PTP_FROZEN {
         [*] --> HoldActiveSchedule
@@ -255,8 +255,8 @@ stateDiagram-v2
 | **`DIAGNOSING`** | Receipt of raw failure payload. | Evaluates 12 error taxonomy buckets, checks RBI AFA caps (₹15k / ₹1L), evaluates LLM confidence. | • Soft Failure / Recoverable Hard (Expired card/mandate) $\rightarrow$ **`ACTION_SCHEDULED`**<br>• $\text{Conf} < 0.70$ / Risk Flag $\rightarrow$ **`HUMAN_REVIEW`**<br>• Terminal Hard (Revoked / Dispute / Opt-Out) $\rightarrow$ **`UNRECOVERABLE`**. |
 | **`HUMAN_REVIEW`** | Low classifier confidence, ambiguous decline string, or fraud flag. | Automated execution frozen pending human operator audit. | • Operator Approved $\rightarrow$ **`ACTION_SCHEDULED`**<br>• Operator Rejected $\rightarrow$ **`UNRECOVERABLE`**. |
 | **`ACTION_SCHEDULED`** | Diagnosis completed or operator approval. | • TRAI Quiet Hours: 08:00–20:00 window enforced.<br>• Statutory $\ge 24\text{h}$ Pre-Debit notification queued.<br>• Salary cycle snapping (1st–5th / 25th–30th). | After $\ge 24\text{h}$ notice window and cooling interval elapse $\rightarrow$ **`RETRYING`**. |
-| **`RETRYING`** | Expiration of 24h pre-debit notice window and 48h cooling interval. | Increments `retry_count`; executes auto-debit, dynamic AFA link, or UPI intent. | • Debit / Link Success $\rightarrow$ **`RECOVERED`**<br>• Attempt 1 Failed $\rightarrow$ **`ACTION_SCHEDULED`** (Silent Requeue)<br>• Attempt 2 Failed $\rightarrow$ **`RETRYING`** (Digital Nudge)<br>• Attempt 3 Failed $\rightarrow$ **`ESCALATED`** (Voice Bot / PTP)<br>• Max Retries (3) or Opt-Out $\rightarrow$ **`UNRECOVERABLE`**. |
-| **`ESCALATED`** | Final soft retry attempt or high-value overdue case. | Multi-channel conversational escalation (Hinglish Voice Recovery Call + PTP negotiation). | • Customer sets PTP $\rightarrow$ **`PTP_FROZEN`**<br>• Paid via call/link $\rightarrow$ **`RECOVERED`**<br>• 14-Day Dunning Ceiling reached $\rightarrow$ **`UNRECOVERABLE`**. |
+| **`RETRYING`** | Expiration of 24h pre-debit notice window and 48h cooling interval. | Increments `retry_count`; executes auto-debit, dynamic AFA link, or UPI intent. | • Debit / Link Success $\rightarrow$ **`RECOVERED`**<br>• Attempt 1 Failed $\rightarrow$ **`ACTION_SCHEDULED`** (Silent Requeue + 48h Cooling)<br>• Attempt 2 Failed $\rightarrow$ **`RETRYING`** (Light Digital Nudge + 48h Cooling)<br>• Attempt 3 Failed $\rightarrow$ **`ESCALATED`** (Debit Cap Reached: Handoff to Voice Bot & PTP)<br>• Customer Opt-Out $\rightarrow$ **`UNRECOVERABLE`**. |
+| **`ESCALATED`** | Auto-debit attempts exhausted (Attempt 3 failed) or high-value overdue case. | Multi-channel conversational escalation (Hinglish Voice Recovery Call + PTP negotiation). | • Customer sets PTP $\rightarrow$ **`PTP_FROZEN`**<br>• Paid via call/link $\rightarrow$ **`RECOVERED`**<br>• Voice Outreach Exhausted / 14-Day Dunning Ceiling $\rightarrow$ **`UNRECOVERABLE`**. |
 | **`PTP_FROZEN`** | Customer commits to a specific payment date (`STOP_PTP_ACTIVE`). | **All automated retries and calls frozen** until date $X + 24\text{ hours}$. | • Paid during grace window $\rightarrow$ **`RECOVERED`**<br>• Grace window expires unpaid $\rightarrow$ **`RETRYING`**. |
 | **`RECOVERED`** | Webhook received: `payment.captured`, `subscription.charged`, or `invoice.paid`. | **Terminal Success State:** Instantly purge pending retry queues (`STOP_PAID`); dispatch post-debit receipt with grievance details; log audit record. | Terminal $\rightarrow$ **`[*]`**. |
 | **`UNRECOVERABLE`** | Triggered by `STOP_MAX_RETRIES` (3 attempts), 14-day ceiling, `STOP_MANDATE_REVOKED`, `STOP_OPT_OUT`, or `STOP_DISPUTE_FRAUD`. | **Terminal Closed State:** Gracefully pause subscription, release resources, record immutable audit log, route case to human ops. | Terminal $\rightarrow$ **`[*]`**. |
