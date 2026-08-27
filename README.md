@@ -94,13 +94,15 @@ flowchart TD
     W3 --> PARSE
 
     PARSE --> TRIAGE
-    TRIAGE -->|Confidence >= 0.85 & Soft| SOFT
-    TRIAGE -->|Confidence >= 0.85 & Hard| HARD
-    TRIAGE -->|Drop-off / Invoice| DROP
+    TRIAGE -->|Deterministic Conf >= 0.85 & Soft| SOFT
+    TRIAGE -->|Deterministic Conf >= 0.85 & Hard| HARD
+    TRIAGE -->|Deterministic Drop-off / Invoice| DROP
     TRIAGE -->|Ambiguous / Unmapped| LLM_PARSER
     
-    LLM_PARSER -->|Resolved Confidence >= 0.70| TRIAGE
-    LLM_PARSER -->|Confidence < 0.70 / Fraud Flag| HUMAN_ESC
+    LLM_PARSER -->|Resolved Soft (Conf >= 0.70)| SOFT
+    LLM_PARSER -->|Resolved Hard (Conf >= 0.70)| HARD
+    LLM_PARSER -->|Resolved Drop-off / Invoice (Conf >= 0.70)| DROP
+    LLM_PARSER -->|Unresolved / Low Conf < 0.70 / Fraud Flag| HUMAN_ESC
     
     HUMAN_ESC --> HUMAN_DECISION
     HUMAN_DECISION -->|Approved / Overridden| STOP
