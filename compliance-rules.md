@@ -3,160 +3,191 @@
 
 ---
 
-## 1. Executive Summary & Regulatory Scope
+## 1. Executive Summary & Dual-Layer Governance Architecture
 
-The AI Revenue Recovery agent operates under the strict regulatory oversight of the **Reserve Bank of India (RBI)**, the **National Payments Corporation of India (NPCI)**, the **Telecom Regulatory Authority of India (TRAI)**, the **Micro, Small and Medium Enterprises Development (MSMED) Act, 2006**, the **Consumer Protection (E-Commerce) Rules / CCPA Guidelines, 2023**, and the **Digital Personal Data Protection (DPDP) Act, 2023**.
+The AI Revenue Recovery Agent operates on a **dual-layer compliance architecture**:
+1. **Layer 1: Statutory & Regulatory Framework (The Law)** — Mandatory rules codified by the **Reserve Bank of India (RBI)**, **National Payments Corporation of India (NPCI)**, **Telecom Regulatory Authority of India (TRAI)**, **Micro, Small and Medium Enterprises Development (MSMED) Act, 2006**, **Consumer Protection / CCPA Guidelines, 2023**, and the **DPDP Act, 2023 (with DPDP Rules, 2025)**.
+2. **Layer 2: Internal System Policies & Architectural Guardrails (Engineering Controls)** — Operational rate-limiters, safety stopping rules, anti-harassment heuristics, and retry sequencing bounds implemented in the recovery state machine.
 
-Any automated intervention—ranging from recurring subscription retries and checkout dunning to Hinglish voice reminders and overdue B2B receivables tracking—must operate within deterministic, provably compliant boundaries.
+```
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                   LAYER 1: STATUTORY & REGULATORY MANDATES                       │
+│  • RBI E-Mandate Framework (₹15k / ₹1L AFA Caps, ≥24h Pre-Debit Alerts, Expiry)  │
+│  • NPCI UPI AutoPay Rails & Validation Standards                                │
+│  • MSMED Act Section 15/16 (MSE Supplier 45-Day Terms & Statutory Interest)      │
+│  • Consumer Protection / CCPA Anti-Dark-Patterns (No Subscription Traps)        │
+│  • DPDP Act 2023 & Rules 2025 (End-to-End PII Redaction across LLM & Logs)      │
+│  • TRAI TCCCPR Communication Taxonomy (Transactional, Service, Promotional)     │
+└────────────────────────────────────────┬─────────────────────────────────────────┘
+                                         │ Governs & Constrains
+┌────────────────────────────────────────▼─────────────────────────────────────────┐
+│              LAYER 2: INTERNAL SYSTEM POLICIES & RECOVERY ENGINE                 │
+│  • Internal Contact Window: 08:00 AM – 08:00 PM IST (Quiet Hours Queue)          │
+│  • Anti-Harassment Caps: Max 2 touches/24h, Max 1 Voice Call/48h                 │
+│  • Smart Retry Sequencer: Max 3 Retries, Min 48h Cooling-off, Salary Heuristics │
+│  • Deterministic Stopping Rules (STOP_PAID, STOP_EXPIRED, STOP_PTP, etc.)        │
+│  • AFA Dynamic Payment Link & 1-Click Drop-off Recovery Fallbacks                │
+│  • Immutable Multi-Field Compliance Audit Trail with `afa_status` Logging        │
+└──────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 2. RBI 2026 E-Mandate Framework & Recurring Payment Regulations
+# PART I: STATUTORY & REGULATORY MANDATES (THE LAW)
+
+## 2. RBI E-Mandate Framework & Recurring Payment Regulations
 
 ### Statutory References:
-1. **Consolidated Framework:** *RBI Digital Payments – E-mandate Framework, 2026* (Circular No. `RBI/DPSS/2026-27/396`)
-2. **Foundational e-Mandate Circular:** RBI Circular `DPSS.CO.PD No.447/02.14.003/2019-20` (*Processing of e-mandate on cards for recurring transactions*)
-3. **Threshold Increase to ₹15,000:** RBI Circular `CO.DPSS.POLC.No.S-518/02-14-003/2022-23`
-4. **Enhanced ₹1,00,000 Exemption:** RBI Circular `RBI/2023-24/90` (`CO.DPSS.POLC.No.S890/02-14-003/2023-24`) for Mutual Funds, Insurance Premiums, and Credit Card Bill Payments.
-5. **UPI AutoPay Expansion:** RBI Circular `DPSS.CO.PD No.1324/02.14.003/2019-20` & NPCI UPI AutoPay Operating Guidelines.
-6. **Transit & FASTag Exemption:** RBI Circular `CO.DPSS.POLC.No.S-545/02-14-003/2024-25` (Exemption of 24h pre-debit alert for auto-replenishment of FASTag/NCMC).
+* **Consolidated Framework:** *RBI Digital Payments – E-mandate Framework, 2026* (Circular No. `RBI/DPSS/2026-27/396`)
+* **Foundational e-Mandate Circulars:** `DPSS.CO.PD No.447/02.14.003/2019-20` (Cards) & `DPSS.CO.PD No.1324/02.14.003/2019-20` (UPI/PPIs)
+* **General Limit Modification (₹15,000):** RBI Circular `CO.DPSS.POLC.No.S-518/02-14-003/2022-23`
+* **Exempt Category Relaxation (₹1,00,000):** RBI Circular `RBI/2023-24/90` (`CO.DPSS.POLC.No.S890/02-14-003/2023-24`)
+* **Transit / FASTag Exemption:** RBI Circular `CO.DPSS.POLC.No.S-545/02-14-003/2024-25`
 
 ---
 
-### Core Statutory Mandates
+### Core Statutory Mandates & Regulatory Standards
 
-| Regulation | Compliance Requirement | System Enforcement Rule |
+| Regulatory Requirement | Statutory Rule | System Compliance Action |
 | :--- | :--- | :--- |
-| **Mandate Registration AFA** | Initial registration of any recurring e-mandate (Cards, UPI AutoPay, NetBanking, e-NACH) requires mandatory Additional Factor of Authentication (AFA). | `ENFORCE_MANDATE_REGISTRATION_AFA = True`. Reject any recurring auto-debit if valid mandate registration token is absent. |
-| **General No-AFA Ceiling (₹15,000)** | Subsequent recurring auto-debits $\le ₹15,000$ per transaction can be charged seamlessly without OTP/AFA. | If `transaction_amount <= 15000` AND `category == "STANDARD"`, proceed to compliant auto-retry sequencing. |
-| **Enhanced No-AFA Ceiling (₹1,00,000)** | Recurring payments up to **₹1,00,000** without OTP/AFA are permitted **exclusively** for:<br>• **Mutual Fund Subscriptions (SIPs)**<br>• **Insurance Premium Payments**<br>• **Credit Card Bill Payments** | If `transaction_amount <= 100000` AND `category IN ["MUTUAL_FUND", "INSURANCE", "CREDIT_CARD_BILL"]`, allow direct auto-debit retry. |
-| **Transactions Exceeding Thresholds** | Any recurring transaction exceeding ₹15,000 (or ₹1,00,000 for exempt categories) **must not be auto-debited**. | **Hard Stop on Direct Debit**: Agent must generate an **AFA-compliant one-time dynamic payment link** and deliver it via WhatsApp/SMS/Email for customer OTP validation. |
-| **Mandatory 24-Hour Pre-Debit Notification** | Issuer / Payment Gateway must deliver a pre-debit alert to the cardholder/account holder at least **24 hours prior** to the scheduled debit timestamp. | Scheduled retry debits must queue a Pre-Debit notification $\ge 24\text{ hours}$ before firing the payment debit API. Alert must state: Merchant Name, Amount, Debit Date, Mandate ID, and Opt-out Link. *(Exemptions: FASTag / NCMC auto-replenishment).* |
-| **Post-Debit Confirmation** | Immediate notification confirming debit success or failure reason must be sent to the customer. | Agent triggers webhook-backed post-debit event notification upon receiving gateway response. |
-| **Customer Right to Pause / Revoke** | The customer has the absolute legal right to pause, modify, or revoke an active e-mandate at any point. | If customer revokes or pauses mandate (`subscription.halted` / `mandate.revoked`), immediately purge pending retry queues for that mandate. |
-| **Prohibition of Customer Surcharges** | Banks/merchants cannot levy penalty charges on customers for utilizing e-mandate facilities. | Auto-retry schedules must not add punitive dunning surcharges to recurring mandate amounts. |
+| **Mandate Registration AFA** | Initial registration of any recurring e-mandate (Cards, UPI AutoPay, NetBanking, e-NACH) requires mandatory Additional Factor of Authentication (AFA). | `ENFORCE_MANDATE_REGISTRATION_AFA = True`. Verify successful registration authentication before enabling automated recurring debits. |
+| **General No-AFA Ceiling (₹15,000)** | Subsequent recurring transactions up to **₹15,000 per transaction** can be processed without requiring AFA/OTP for each debit cycle across recurring payments. | Transactions $\le ₹15,000$ are routed to automated debit retry workflows. Set `afa_status = "NOT_REQUIRED"`. |
+| **Enhanced No-AFA Ceiling (₹1,00,000)** | Recurring transactions up to **₹1,00,000 per transaction** without per-cycle AFA are permitted **strictly and exclusively** for:<br>1. **Mutual Fund Subscriptions (SIPs)**<br>2. **Payment of Insurance Premiums**<br>3. **Credit Card Bill Payments** | If `category IN ["MUTUAL_FUND", "INSURANCE_PREMIUM", "CREDIT_CARD_BILL"]` and `amount <= 100000`, allow automated recurring debit. Set `afa_status = "EXEMPT_CATEGORY_SIP_INS_CC"`. |
+| **Transactions Exceeding Statutory Caps** | Any recurring transaction exceeding ₹15,000 (or ₹1,00,000 for exempt categories) **requires per-cycle AFA/OTP validation**. | **Direct Auto-Debit Disabled**: The agent triggers an AFA checkout intervention (e.g. generating an AFA-compliant one-time payment link sent via WhatsApp/SMS/Email). Set `afa_status = "AFA_REQUIRED_LINK_SENT"`. |
+| **Mandatory Pre-Debit Notification** | Issuers/payment systems must dispatch a pre-debit alert to the customer **at least 24 hours prior** to the actual debit timestamp. *(Exemption: Auto-replenishment for FASTag/NCMC transit balances).* | Mandatory check: Ensure `scheduled_debit_time - pre_debit_alert_time >= 24 hours`. The alert must contain: Merchant Name, Amount, Date of Debit, Mandate ID, and a facility/link to opt-out. |
+| **Post-Debit Confirmation & Grievance Details** | Issuers/systems must send immediate post-debit notification confirming payment success or failure reason, and must include **grievance redressal information**. | `POST_DEBIT_NOTIFICATION_MUST_INCLUDE_GRIEVANCE_DETAILS = True`. Every confirmation receipt must include transaction reference, amount, timestamp, and a link/contact for customer support/dispute redressal. |
+| **Mandate Modification & Withdrawal Facility** | Banks/issuers must provide customers with accessible facilities to modify validity, amount limits, or withdraw/cancel active e-mandates subject to appropriate authentication. | If customer revokes mandate (`mandate.revoked` or `subscription.halted`), immediately execute `STOP_MANDATE_REVOKED` and purge pending retries. |
+| **Mandate Validity Period & Expiry** | E-mandates are valid only within their defined validity timeline. | Check mandate `valid_until` timestamp. If expired, trigger `STOP_MANDATE_EXPIRED` and disable automated debits. |
+| **Prohibition of Customer Surcharges** | Banks and merchants are prohibited from levying charges on customers for availing e-mandate facilities. | Auto-retry schedules must not add punitive dunning surcharges to recurring mandate amounts. |
 
 ---
 
-## 3. NPCI UPI AutoPay & NACH Operational Specifications
+## 3. MSMED Act, 2006 (B2B Commercial Receivables)
 
-### Technical Guardrails & Rails Alignment:
-1. **Notification Window:** Pre-debit notifications must be dispatched within the **24-hour to 48-hour window** prior to execution on UPI AutoPay rails.
-2. **Mandate Identification:** All recurring retry requests must carry a validated **UMN (Unique Mandate Number)** issued during initial mandate creation.
-3. **Cooling-Off & Penalty Prevention:**
-   - Maximum of **3 debit attempts per invoice cycle**.
-   - Minimum interval of **48 hours** between debit retries to prevent customer bank account penalty/dishonour charges.
-   - Immediate circuit-breaker trigger on receiving hard bank error codes (e.g. `ACCOUNT_CLOSED`, `MANDATE_INACTIVE`).
+For B2B Overdue Receivables Chaser and Commercial Invoice workflows:
 
----
+### Statutory Provisions:
+1. **Section 15 (Liability of Buyer to Make Payment):**
+   * Where a business purchases goods or services from a registered **Micro or Small Enterprise (MSE) supplier**, the buyer must make payment on or before the agreed date.
+   * If no agreement exists, payment is due within **15 days**.
+   * In no case shall the agreed credit period exceed **45 days** from the day of acceptance or deemed acceptance.
+2. **Section 16 (Compound Interest on Delayed Payment):**
+   * Delayed payments to registered MSE suppliers attract mandatory compound interest with monthly rests at **3x the Bank Rate** notified by the Reserve Bank of India.
 
-## 4. MSMED Act, 2006 (B2B Receivables & Commercial Invoices)
-
-For B2B Overdue Receivables Chaser and Enterprise Dunning workflows:
-
-### Statutory References:
-- **Section 15 (Liability to make payment):** Buyer must pay MSME supplier on or before agreed date, not exceeding **45 days** from acceptance.
-- **Section 16 (Compound interest for delayed payment):** Delayed payments attract compound interest with monthly rests at **3x the Bank Rate** notified by the RBI.
-
-### B2B Recovery Guardrails:
-1. **Transparent Invoicing:** All communications must clearly reference the original Tax Invoice Number, PO Number, GSTIN, and Due Date.
-2. **Structured Promise-to-Pay (PTP):** The agent can negotiate compliant milestone payments or PTP dates within the statutory 45-day cycle.
-3. **Zero Intimidation:** B2B reminders must strictly adhere to professional accounts-receivable standards, avoiding harassment, unauthorized third-party contact, or defamatory outreach.
+### System Compliance Boundary:
+* **Identification:** Differentiate between registered MSE suppliers (governed by the statutory 45-day rule) and general enterprise receivables.
+* **Transparent Referencing:** All B2B communications must accurately cite the original Tax Invoice Number, Purchase Order (PO), GSTIN, Acceptance Date, and Due Date.
+* **Legal Status of Promise-to-Pay (PTP):** Recording a PTP pauses automated AI dunning as an internal workflow control, but does not legally extinguish statutory interest accrual under Section 16 unless formal settlement is executed.
 
 ---
 
-## 5. Consumer Protection (E-Commerce) Rules & Anti-Dark Patterns (CCPA 2023)
+## 4. Consumer Protection (E-Commerce) Rules & Anti-Dark-Patterns (CCPA 2023)
 
 For Checkout Drop-off Recovery & Cart Abandonment workflows:
 
-1. **Prohibition of "Subscription Traps":** Recovery nudges must never deceptively enroll customers into recurring billing without explicit, affirmative consent.
-2. **No Deceptive Urgency:** Countdown timers, inventory warnings, or discounts must reflect genuine merchant terms rather than false artificial scarcity.
-3. **Easy Cancellation & Opt-Out:** Every checkout recovery message must provide an explicit opt-out mechanism (e.g., reply `STOP` or 1-click unsubscribe).
-4. **Transparent Pricing:** The recovered payment link must disclose the exact total price, breakdown of taxes/GST, and recurring billing frequency (if any).
+1. **Prohibition of "Subscription Traps" & "Forced Continuity":** Recovery nudges must never deceptively enroll a user into recurring billing without explicit, affirmative consent.
+2. **Prohibition of "Basket Sneaking" & Deceptive Pricing:** Checkout links must transparently disclose the itemized subtotal, applicable taxes/GST, and recurring billing frequency (if any).
+3. **Opt-Out Mechanism:** Every promotional or cart recovery communication must provide a straightforward opt-out mechanism (e.g. reply `STOP` or 1-click unsubscribe).
 
 ---
 
-## 6. Outreach & Communications Compliance (TRAI TCCCPR & Fair Practices)
+## 5. DPDP Act, 2023 & DPDP Rules, 2025 (Data Privacy & Redaction)
 
-### Permissible Contact Windows
-- **TRAI Regulatory Calling Hours:** All automated outreach (Interactive Voice Recovery, Hinglish voice bot, WhatsApp reminders, and SMS dunning) is strictly restricted to **08:00 AM to 08:00 PM IST**.
-- **Quiet Hours Enforcement:** Any recovery action triggered outside the 08:00 AM – 08:00 PM window must be queued into a delayed scheduler for execution at 08:05 AM the following business morning.
-
-### Frequency Capping & Anti-Harassment Guardrails
-- **Max Outreach Per Day:** Maximum of **2 touchpoints per customer per 24-hour cycle** across all non-intrusive channels (SMS, WhatsApp, Email).
-- **Voice Call Cap:** Maximum of **1 AI Voice Call per 48-hour cycle**. Never call twice on the same calendar day.
-- **Cooling-Off Period:** After 3 consecutive unacknowledged outreaches, enter a **72-hour cooling-off window** before any subsequent reminder.
-- **DND Registry Adherence:** Respect user preference flags. If `DND == True`, suppress voice calls and fallback strictly to transactional email / WhatsApp service updates.
+* **End-to-End PII Redaction Scope:** Masking of Personally Identifiable Information (PII) and card data is **not restricted to final audit logs**. It must be enforced across:
+  * **LLM Prompts & Agent Context** (Raw PAN/CVV must never enter LLM context).
+  * **Application Debug Logs & Transcripts**.
+  * **Audit Records, Analytics Datasets, and Export Files**.
+* **PCI-DSS Tokenization & Masking Standards:**
+  * Primary Account Numbers (PAN): Display only last 4 digits (e.g. `****-****-****-4012`).
+  * Customer Phone: Mask central digits (e.g. `+91-98****9012`).
+  * Customer Email: Mask mailbox name (e.g. `r*****l@domain.com`).
 
 ---
 
-## 7. Failure Classification & Bounded Intervention Decision Matrix
+## 6. Telecom & Communication Classification (TRAI TCCCPR)
+
+Communications must be classified into proper regulatory streams rather than using a single binary DND switch:
+
+| Communication Type | Description & Purpose | Consent & Preference Rules | Permitted Channels |
+| :--- | :--- | :--- | :--- |
+| **`TRANSACTIONAL`** | OTPs, debit confirmations, critical security alerts. | Sent to all customers; exempt from DND registration. | SMS, Email, In-App Push. |
+| **`SERVICE`** | Mandatory 24h pre-debit notifications, mandate status changes, payment failure alerts (inferred/explicit service relationship). | Sent to active subscribers/account holders; service updates permitted. | SMS, Email, WhatsApp Service Messages. |
+| **`RECOVERY`** | Overdue invoice reminders, payment retry alerts, B2B receivable follow-ups. | Permitted under commercial contract; subject to internal fair-practice frequency caps. | WhatsApp, Email, Voice Recovery Agent. |
+| **`PROMOTIONAL`** | Abandoned checkout nudges, discount recovery offers, re-engagement campaigns. | Strictly subject to TRAI commercial communication rules, UCC preference registry (DND), and explicit opt-in. | WhatsApp Promotional, SMS Promotional (09:00 AM – 08:00 PM window). |
+
+---
+
+# PART II: INTERNAL SYSTEM POLICIES & RECOVERY ENGINE (ENGINEERING CONTROLS)
+
+## 7. Internal Operational Hours & Anti-Harassment Policies
+
+These rules represent our **internal safety and fair-practice guardrails** (distinct from statutory law):
+
+* **Internal Safe Outreach Window (08:00 AM – 08:00 PM IST):**
+  * All automated recovery interactions (AI Voice recovery calls, WhatsApp nudges, and dunning messages) are restricted to **08:00 AM to 08:00 PM IST**.
+  * **Quiet Hours Queue:** Any event triggered outside this window is queued in a delayed scheduler and dispatched at 08:05 AM the next morning.
+* **Internal Frequency Caps:**
+  * **Max 2 touches per customer per 24 hours** across non-intrusive channels (SMS, WhatsApp, Email).
+  * **Max 1 AI Voice Call per 48 hours** per customer. Never place consecutive calls on the same day.
+  * **72-Hour Cooling-Off Window:** After 3 consecutive unacknowledged outreaches, pause automated contact for 72 hours before subsequent dunning.
+* **Respectful & Empathetic Hinglish Voice Tone:**
+  * The voice bot must introduce itself clearly as an authorized AI recovery assistant.
+  * Zero tolerance for aggressive, threatening, or high-pressure dunning language.
+
+---
+
+## 8. Failure Classification & Decision Routing Engine
 
 ```mermaid
 flowchart TD
-    A[Payment Failure / Drop-Off Ingested] --> B{Failure Category?}
+    A[Payment Failure / Drop-Off Ingested] --> B{Classify Failure Type}
     
-    B -->|Soft Failure: Insufficient Funds / Bank Down| C[Check Amount Threshold]
-    C -->|Amount <= Cap: ₹15k / ₹1L| D[Queue 24h Pre-Debit Alert + Schedule Smart Retry]
-    C -->|Amount > Cap| E[Send AFA/OTP Payment Link via WhatsApp/SMS]
+    B -->|Soft Failure: Insufficient Funds / Bank Down| C{Check Regulatory Cap}
+    C -->|Amount <= Cap: ₹15k or ₹1L Exempt| D[Queue Pre-Debit Alert >= 24h<br/>Schedule Smart Retry]
+    C -->|Amount > Cap| E[Direct Debit Disabled<br/>Send Dynamic AFA Payment Link]
     
-    B -->|Hard Failure: Card Expired / Mandate Revoked| F[Halt Auto-Debit Retry<br/>Send Mandate Update / Re-auth Link]
+    B -->|Hard Failure: Card Expired / Account Closed| F[Trigger STOP_MANDATE_EXPIRED<br/>Send 1-Click Mandate Update Link]
     
-    B -->|Checkout Abandonment| G[Send 1-Click Razorpay Drop-off Recovery Link]
+    B -->|Mandate Revoked / Halted| G[Trigger STOP_MANDATE_REVOKED<br/>Purge Pending Retries]
     
-    B -->|B2B Overdue Invoice| H[Initiate Hinglish Voice / PTP Tracker Flow]
+    B -->|Checkout Drop-off| H[Check Consent & DND<br/>Send Transparent Cart Recovery Link]
+    
+    B -->|Overdue B2B Invoice| I[Check MSE Status<br/>Initiate Hinglish Voice / PTP Tracker Flow]
 ```
 
 ### Failure Code Action Matrix
 
-| Failure Code / Scenario | Type | Permitted Intervention | Prohibited Action |
+| Failure Code / Scenario | Classification | Internal System Intervention | Strict Boundary Condition |
 | :--- | :--- | :--- | :--- |
-| `INSUFFICIENT_FUNDS` | Soft | 24h Pre-Debit Notification $\rightarrow$ Smart retry on predicted salary/liquidity window (1st–5th or 25th–30th). | Immediate back-to-back retries without cooling interval. |
-| `GATEWAY_ERROR` / `BANK_DOWNTIME` | Soft | Exponential backoff retry (Wait 2h $\rightarrow$ 6h $\rightarrow$ 24h) with route fallback. | Repeated polling against degraded bank route. |
-| `EXPIRED_CARD` / `ACCOUNT_CLOSED` | Hard | Immediate notification with 1-click mandate update link. | Any automated debit retry against expired instrument. |
-| `MANDATE_REVOKED_BY_USER` | Hard | Cease auto-debit; send optional subscription cancellation / reactivate email. | Repeated dunning or auto-retrying cancelled mandate. |
-| `ABANDONED_CHECKOUT` | Drop-off | WhatsApp cart recovery nudge with personalized incentive / alternate payment rail (UPI). | High-pressure urgency tactics or deceptive pricing. |
-| `OVERDUE_B2B_INVOICE` | Receivables | Interactive conversational reminder $\rightarrow$ Promise-to-Pay (PTP) negotiation under MSMED timelines. | Defamatory or threatening communication. |
+| `INSUFFICIENT_FUNDS` | Soft Failure | Dispatch 24h pre-debit alert $\rightarrow$ Schedule retry aligned with salary/liquidity heuristics (1st–5th or 25th–30th). | Must strictly uphold the statutory $\ge 24\text{h}$ pre-debit notice before firing retry. |
+| `GATEWAY_ERROR` / `BANK_DOWNTIME` | Soft Failure | Exponential backoff (Wait 2h $\rightarrow$ 6h $\rightarrow$ 24h) with route fallback. | Stop hammering degraded bank routes. |
+| `EXPIRED_CARD` / `ACCOUNT_CLOSED` | Hard Failure | Immediate status update; deliver 1-click mandate instrument update link. | Zero automated retry against expired instrument. |
+| `MANDATE_REVOKED` / `CANCELLED` | Hard Failure | Execute `STOP_MANDATE_REVOKED`; cancel all queued dunning tasks. | Never attempt debits on cancelled mandates. |
+| `MANDATE_EXPIRED` | Hard Failure | Execute `STOP_MANDATE_EXPIRED`; send re-registration invite. | Never attempt debits past mandate validity date. |
+| `ABANDONED_CHECKOUT` | Drop-off | Send 1-click cart recovery link with itemized pricing breakdown. | No hidden charges or subscription traps. |
+| `OVERDUE_B2B_INVOICE` | Receivables | Conversational Hinglish reminder $\rightarrow$ Promise-to-Pay (PTP) scheduling under MSMED terms. | Professional conduct; no defamatory outreach. |
 
 ---
 
-## 8. Deterministic Stopping Rules & Boundary Conditions
+## 9. Deterministic Stopping Rules & State Machine Guardrails
 
-The AI Revenue Recovery Agent must **immediately terminate** all automated dunning, retries, and communications when any of the following boundary conditions are met:
+The recovery engine enforces **7 deterministic stopping rules** that immediately halt automated dunning and retries:
 
-1. **`STOP_PAID` (Successful Recovery):**
-   * *Condition:* Webhook event `payment.captured`, `subscription.charged`, or `invoice.paid` received.
-   * *Action:* Instantly cancel all pending retry jobs, unschedule outbound calls, and dispatch a post-debit confirmation receipt.
-2. **`STOP_PTP_ACTIVE` (Promise-to-Pay Grace Period):**
-   * *Condition:* Customer explicitly commits: *"I will pay by Friday 5 PM"*.
-   * *Action:* Record timestamped `PTP_PROMISE_DATE`. **Freeze all dunning/retries** until `PTP_PROMISE_DATE + 24 hours`.
-3. **`STOP_OPT_OUT` (Explicit Customer Request):**
-   * *Condition:* Customer replies *"STOP"*, clicks *"Cancel Mandate"*, or clicks unsubscribe.
-   * *Action:* Instantly halt all recovery workflows. Mark status as `OPTED_OUT_BY_CUSTOMER`.
-4. **`STOP_MAX_RETRIES` (Exhaustion Limit):**
-   * *Condition:* Mandate retry count reaches **3 attempts** or dunning cycle exceeds **14 days**.
-   * *Action:* Mark as `UNRECOVERABLE_EXHAUSTED`. Pause subscription gracefully and route to human ops.
-5. **`STOP_DISPUTE_FRAUD` (Risk & Compliance Flag):**
-   * *Condition:* Customer flags unauthorized debit or files a chargeback dispute (`payment.disputed`).
-   * *Action:* Immediate lockdown of recovery agent. Escalate case to Razorpay Risk & Fraud team.
+| Stopping Rule | Trigger Condition | System Action & State Transition | Category |
+| :--- | :--- | :--- | :--- |
+| **`STOP_PAID`** | Webhook received: `payment.captured`, `subscription.charged`, or `invoice.paid`. | Instantly cancel all pending retries/calls; dispatch post-debit confirmation with grievance details. | **Statutory / Resolution** |
+| **`STOP_MANDATE_REVOKED`** | Webhook received: `mandate.revoked` or `subscription.halted`. | Purge all pending retries; mark mandate as inactive. | **Statutory / Compliance** |
+| **`STOP_MANDATE_EXPIRED`** | Current timestamp exceeds mandate `valid_until` date. | Cease all auto-debit retries; send mandate re-registration invitation. | **Statutory / Compliance** |
+| **`STOP_OPT_OUT`** | Customer sends `"STOP"`, clicks unsubscribe, or requests communication halt. | Immediately cease all outbound recovery communications on that channel. | **Regulatory / Consent** |
+| **`STOP_DISPUTE_FRAUD`** | Chargeback filed (`payment.disputed`) or unauthorized transaction flag raised. | Immediate lockdown of recovery workflow; escalate case to authorized risk and fraud operations. | **Regulatory / Risk** |
+| **`STOP_PTP_ACTIVE`** | Customer commits to pay by a specific date (e.g. *"Will pay by Friday 5 PM"*). | Record `PTP_PROMISE_DATE`. **Freeze all dunning and retries** until `PTP_PROMISE_DATE + 24 hours`. | **Internal System Policy** |
+| **`STOP_MAX_RETRIES`** | System reaches cap of **3 retry debit attempts** or **14 days in dunning**. | Mark status as `UNRECOVERABLE_EXHAUSTED`; gracefully pause subscription and route to human ops. | **Internal System Policy** |
 
 ---
 
-## 9. Data Privacy, DPDP 2023 & Fair Recovery Standards
+## 10. Compliance Audit Trail Specification
 
-- **PII & Card Data Redaction:**
-  * Raw 16-digit Primary Account Numbers (PAN) and CVVs must **never** be logged in transcripts, agent context, or audit databases (PCI-DSS compliance).
-  * Customer identifiers must be masked in audit outputs (e.g., `+91-98****1234`, `****-****-****-4012`, `rahul****@gmail.com`).
-- **Ethical & Respectful Hinglish Tone:**
-  * Voice recovery agent must introduce itself as an authorized Razorpay AI Assistant.
-  * Tone must remain polite, empathetic, and constructive (e.g., *"Namaste Rahul ji, hum Razorpay se call kar rahe hain regarding your pending invoice..."*).
-  * Zero tolerance for intimidation, unverified claims, or calling relatives/third parties.
-
----
-
-## 10. Compliance Audit Trail Schema
-
-Every recovery decision, evaluation, and action must be recorded into an immutable audit trail adhering to this exact schema:
+Every evaluation, decision, and action taken by the AI Revenue Recovery Agent must be recorded into an immutable audit trail adhering to this exact schema:
 
 ```json
 {
@@ -166,29 +197,38 @@ Every recovery decision, evaluation, and action must be recorded into an immutab
   "customer_masked": "+91-98****9012",
   "amount_inr": 4999.00,
   "category": "STANDARD",
+  "communication_type": "SERVICE",
   "afa_required": false,
+  "afa_status": "NOT_REQUIRED",
   "event_type": "PRE_DEBIT_NOTIFICATION_DISPATCHED",
   "channel": "WHATSAPP_SMS",
-  "rule_applied": "RBI_2026_MANDATORY_24H_PRE_DEBIT",
-  "trai_window_check": "PASS_08_TO_20_IST",
-  "decision_rationale": "Soft failure INSUFFICIENT_FUNDS. Amount <= 15000 INR. Queued pre-debit alert 24h prior to retry attempt #1 on estimated salary credit date.",
-  "outcome_status": "QUEUED_FOR_RETRY",
+  "statutory_rule_applied": "RBI_2026_MANDATORY_24H_PRE_DEBIT",
+  "internal_policy_applied": "INTERNAL_SAFE_HOURS_08_TO_20_IST",
+  "decision_rationale": "Soft failure INSUFFICIENT_FUNDS. Amount <= 15000 INR (no AFA required). Dispatched mandatory pre-debit alert >= 24h prior to scheduled retry #1.",
+  "outcome_status": "PRE_DEBIT_DELIVERED",
+  "grievance_details_included": true,
   "active_ptp_date": null,
   "stop_rule_triggered": null
 }
 ```
 
+### Permitted `afa_status` Values:
+* `"NOT_REQUIRED"`: Recurring debit $\le ₹15,000$ across standard recurring transactions.
+* `"EXEMPT_CATEGORY_SIP_INS_CC"`: Recurring debit $\le ₹1,00,000$ for Mutual Funds, Insurance Premiums, or Credit Card Bills.
+* `"AFA_REQUIRED_LINK_SENT"`: Amount exceeds statutory threshold; AFA dynamic payment link dispatched.
+* `"VALIDATED"`: OTP/AFA verified during mandate registration or dynamic payment link completion.
+
 ---
 
-## 11. Summary Checklist for Agent Verification
+## 11. Final Compliance Verification Checklist
 
-- [x] RBI 2026 e-Mandate Framework cited with ₹15,000 / ₹1,00,000 AFA thresholds.
-- [x] Mandatory 24-hour pre-debit alert and post-debit confirmation rules codified.
-- [x] NPCI UPI AutoPay & NACH 24–48h execution window and 48h cooling period.
-- [x] MSMED Act 2006 (Sections 15 & 16) 45-day payment term & B2B dunning rules.
-- [x] Consumer Protection / CCPA 2023 anti-dark patterns rules for checkout recovery.
-- [x] Soft failure vs. hard failure deterministic routing matrix defined.
-- [x] TRAI 08:00 AM – 08:00 PM contact window and frequency caps implemented.
-- [x] 5 Deterministic Stopping Rules (`STOP_PAID`, `STOP_PTP_ACTIVE`, `STOP_OPT_OUT`, `STOP_MAX_RETRIES`, `STOP_DISPUTE`).
-- [x] DPDP 2023 / PCI-DSS PII masking standards established.
-- [x] Immutable compliance audit trail schema specified.
+- [x] **Dual-Layer Architecture:** Clearly distinguishes Statutory Mandates (RBI, NPCI, MSMED, DPDP, TRAI) from Internal System Policies.
+- [x] **RBI E-Mandate Framework:** Accurately cites ₹15,000 general cap and ₹1,00,000 exemption for Mutual Funds, Insurance, and Credit Card bills (`RBI/2023-24/90`).
+- [x] **Mandatory Pre-Debit Alert:** Enforces statutory $\ge 24$-hour pre-debit alert before any retry debit.
+- [x] **Post-Debit Grievance Details:** Mandates inclusion of grievance redressal officer details and dispute links in post-debit receipts.
+- [x] **Mandate Expiry Handling:** Codifies `STOP_MANDATE_EXPIRED` alongside `STOP_MANDATE_REVOKED`.
+- [x] **MSMED Act Section 15/16:** Accurately scopes 45-day payment ceilings to registered Micro and Small Enterprise suppliers.
+- [x] **TRAI Communication Taxonomy:** Implements `TRANSACTIONAL`, `SERVICE`, `RECOVERY`, and `PROMOTIONAL` classification.
+- [x] **End-to-End PII Redaction:** Redaction enforced across LLM prompts, context, logs, transcripts, and audit records.
+- [x] **Internal Safety Guardrails:** Correctly labels 08:00–20:00 contact window, max 3 retries, 48h cooling interval, and PTP freeze as internal system policies.
+- [x] **Auditable `afa_status`:** Implemented in the immutable audit log schema.
