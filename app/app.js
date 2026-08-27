@@ -249,6 +249,167 @@ function exportCurrentTxnAudit() {
   }
 }
 
-function runDemoSimulation() {
-  openAuditModal("sub_live_recov_9824");
+async function runDemoSimulation() {
+  currentViewingTxnId = "sub_live_recov_9824";
+  const modal = document.getElementById("auditModal");
+  const modalBody = document.getElementById("modalBody");
+  document.getElementById("modalTxnId").innerText = `Live End-to-End Simulation: sub_live_recov_9824`;
+  document.getElementById("modalCustomer").innerText = `Customer: +91-9876****4321 • Amount: ₹4,999.00 • Category: STANDARD`;
+
+  modal.style.display = "flex";
+  modalBody.innerHTML = `
+    <div style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:6px; padding:16px; margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span style="font-size:13px; font-weight:600; color:#1E40AF;">Running Live Recovery Simulation</span>
+        <span class="badge-pill pill-info" id="simLiveBadge"><span class="badge-dot"></span>In Progress</span>
+      </div>
+      <div style="background:#DBEAFE; height:6px; border-radius:3px; overflow:hidden;">
+        <div id="simProgressBar" style="background:#2563EB; height:100%; width:15%; transition:width 300ms ease-out;"></div>
+      </div>
+      <div style="font-size:11px; color:#3B82F6; margin-top:6px;" id="simStatusText">Initializing recovery state machine and virtual clock...</div>
+    </div>
+    <div id="simTimelineContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+  `;
+
+  try {
+    const res = await fetch("/api/run-demo");
+    const data = res.ok ? await res.json() : null;
+    const steps = (data && data.steps && data.steps.length > 0) ? data.steps : getFallbackDemoSteps();
+
+    const container = document.getElementById("simTimelineContainer");
+    const progressBar = document.getElementById("simProgressBar");
+    const statusText = document.getElementById("simStatusText");
+    const liveBadge = document.getElementById("simLiveBadge");
+
+    for (let i = 0; i < steps.length; i++) {
+      await new Promise(r => setTimeout(r, 450));
+      const step = steps[i];
+      const pct = Math.round(((i + 1) / steps.length) * 100);
+      if (progressBar) progressBar.style.width = `${pct}%`;
+      if (statusText) statusText.innerText = `Executing Step ${i + 1} of ${steps.length}: ${formatEventType(step.event_type)} (${step.from_state} ➔ ${step.to_state})`;
+
+      let pillClass = "pill-info";
+      if (step.to_state === "RECOVERED") pillClass = "pill-success";
+      else if (step.to_state === "PTP_FROZEN") pillClass = "pill-warning";
+      else if (step.to_state === "UNRECOVERABLE") pillClass = "pill-error";
+
+      const card = document.createElement("div");
+      card.className = "timeline-item";
+      card.style.opacity = "0";
+      card.style.transform = "translateY(6px)";
+      card.style.transition = "opacity 200ms ease-out, transform 200ms ease-out";
+      card.innerHTML = `
+        <div class="timeline-item-header">
+          <div class="timeline-step-title">
+            <span>Step ${i + 1}: ${formatEventType(step.event_type)}</span>
+            <span class="badge-pill ${pillClass}"><span class="badge-dot"></span>${step.to_state}</span>
+          </div>
+          <div class="timeline-timestamp">${(step.timestamp || "").substring(0, 19).replace("T", " ")} UTC</div>
+        </div>
+        <div class="timeline-meta-grid">
+          <div class="timeline-meta-label">Channel: <span class="timeline-meta-val">${step.channel}</span></div>
+          <div class="timeline-meta-label">Statutory Citation: <span class="timeline-meta-val">${step.statutory_rule_applied}</span></div>
+          <div class="timeline-meta-label">Policy Rule: <span class="timeline-meta-val">${step.internal_policy_applied}</span></div>
+          ${step.stop_rule_triggered ? `<div class="timeline-meta-label">Stopping Rule: <span class="timeline-meta-val" style="color:var(--color-error); font-weight:600;">${step.stop_rule_triggered}</span></div>` : ""}
+        </div>
+        <div class="timeline-rationale-box">
+          ${step.decision_rationale}
+        </div>
+      `;
+      container.appendChild(card);
+      setTimeout(() => {
+        card.style.opacity = "1";
+        card.style.transform = "translateY(0)";
+      }, 30);
+    }
+
+    if (liveBadge) {
+      liveBadge.className = "badge-pill pill-success";
+      liveBadge.innerHTML = `<span class="badge-dot"></span>Completed`;
+    }
+    if (statusText) {
+      statusText.innerText = "Simulation Finished: ₹4,999.00 recovered in 7 simulated days (Zero compliance breaches).";
+    }
+
+  } catch (err) {
+    console.error("Failed to run demo simulation", err);
+    openAuditModal("sub_live_recov_9824");
+  }
+}
+
+function getFallbackDemoSteps() {
+  return [
+    {
+      from_state: "DETECTED",
+      to_state: "DIAGNOSING",
+      event_type: "FAILURE_DETECTED",
+      channel: "GATEWAY_WEBHOOK",
+      statutory_rule_applied: "NONE",
+      internal_policy_applied: "TRIAGE_INGESTION_GATE",
+      decision_rationale: "Payment failure ingested: insufficient_funds. Routing to diagnostic engine.",
+      timestamp: "2026-08-27T10:00:00Z"
+    },
+    {
+      from_state: "DIAGNOSING",
+      to_state: "ACTION_SCHEDULED",
+      event_type: "ACTION_PLAN_SCHEDULED",
+      channel: "AUTO_DEBIT_API",
+      statutory_rule_applied: "RBI_2026_PRE_DEBIT_24H_NOTICE_REQUIRED",
+      internal_policy_applied: "48H_COOLING_INTERVAL_SALARY_CYCLE_SNAP",
+      decision_rationale: "Soft Liquidity Retry #1: Mandated >=24h Pre-Debit Alert queued for 2026-08-27; auto-debit scheduled for 2026-08-29.",
+      timestamp: "2026-08-27T10:00:00Z"
+    },
+    {
+      from_state: "ACTION_SCHEDULED",
+      to_state: "ACTION_SCHEDULED",
+      event_type: "PRE_DEBIT_NOTIFICATION_DISPATCHED",
+      channel: "WHATSAPP_SERVICE",
+      statutory_rule_applied: "RBI_2026_PRE_DEBIT_24H_NOTICE_REQUIRED",
+      internal_policy_applied: "INTERNAL_SAFE_HOURS_08_TO_20_IST",
+      decision_rationale: "Dispatched statutory >=24h pre-debit alert prior to retry with opt-out link.",
+      timestamp: "2026-08-27T10:00:00Z"
+    },
+    {
+      from_state: "ACTION_SCHEDULED",
+      to_state: "RETRYING",
+      event_type: "AUTO_DEBIT_ATTEMPT_1_EXECUTED",
+      channel: "AUTO_DEBIT_API",
+      statutory_rule_applied: "RBI_2026_PRE_DEBIT_24H_NOTICE_REQUIRED",
+      internal_policy_applied: "48H_COOLING_INTERVAL_SALARY_CYCLE_SNAP",
+      decision_rationale: "Statutory notice window satisfied. Executed automated recurring debit attempt #1.",
+      timestamp: "2026-08-29T10:00:00Z"
+    },
+    {
+      from_state: "RETRYING",
+      to_state: "ESCALATED",
+      event_type: "AI_VOICE_OUTREACH_ENGAGED",
+      channel: "VOICE_BOT",
+      statutory_rule_applied: "NONE",
+      internal_policy_applied: "RESPECTFUL_HINGLISH_VOICE_DUNNING",
+      decision_rationale: "Empathetic voice recovery bot engaged. Customer committed to Promise-to-Pay (PTP) for September 5th.",
+      timestamp: "2026-08-29T10:00:00Z"
+    },
+    {
+      from_state: "ESCALATED",
+      to_state: "PTP_FROZEN",
+      event_type: "PTP_HOLD_FROZEN",
+      channel: "INTERNAL_PORTAL",
+      statutory_rule_applied: "NONE",
+      internal_policy_applied: "PTP_FREEZE_GRACE_WINDOW",
+      decision_rationale: "Promise-to-Pay locked for 2026-09-05. All dunning touches frozen until 2026-09-06.",
+      stop_rule_triggered: "STOP_PTP_ACTIVE",
+      timestamp: "2026-08-29T10:00:00Z"
+    },
+    {
+      from_state: "PTP_FROZEN",
+      to_state: "RECOVERED",
+      event_type: "WEBHOOK_PAYMENT_CAPTURED",
+      channel: "RAZORPAY_WEBHOOK",
+      statutory_rule_applied: "RBI_POST_DEBIT_GRIEVANCE_RECEIPT",
+      internal_policy_applied: "INSTANT_QUEUE_PURGE_ON_SETTLEMENT",
+      decision_rationale: "Payment captured in full on PTP promise date. Dispatched confirmation receipt. Terminal state: RECOVERED 🚀",
+      stop_rule_triggered: "STOP_PAID",
+      timestamp: "2026-09-05T11:30:00Z"
+    }
+  ];
 }

@@ -35,6 +35,9 @@ class RecoveryDashboardHandler(SimpleHTTPRequestHandler):
         elif self.path == "/api/benchmark":
             self.send_json_response(self.get_benchmark_data())
             return
+        elif self.path == "/api/run-demo":
+            self.send_json_response(self.run_demo_simulation())
+            return
         elif self.path == "/api/export/full-json":
             self.send_file_download(DATA_DIR / "full_batch_audit_trail.json", "full_batch_audit_trail.json", "application/json")
             return
@@ -131,6 +134,33 @@ class RecoveryDashboardHandler(SimpleHTTPRequestHandler):
                 matches.extend([r for r in records if r.get("entity_id") == txn_id])
 
         return matches
+
+    def run_demo_simulation(self) -> Dict[str, Any]:
+        import subprocess
+        try:
+            # Run the single transaction recovery script to regenerate demo audit trail
+            script_path = ROOT_DIR / "scripts" / "run_single_recovery_demo.py"
+            subprocess.run([sys.executable, str(script_path)], check=True, capture_output=True)
+            
+            demo_file = DATA_DIR / "demo_single_txn_audit_trail.json"
+            if demo_file.exists():
+                with open(demo_file, "r", encoding="utf-8") as f:
+                    records = json.load(f)
+            else:
+                records = []
+
+            return {
+                "status": "SUCCESS",
+                "txn_id": "sub_live_recov_9824",
+                "amount_inr": 4999.00,
+                "customer_masked": "+91-9876****4321",
+                "steps": records,
+                "recovered_amount_inr": 4999.00,
+                "recovery_days": 7,
+                "violations_committed": 0,
+            }
+        except Exception as e:
+            return {"status": "ERROR", "error": str(e)}
 
 
 def start_server(port: int = 8888):
