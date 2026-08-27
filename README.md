@@ -61,7 +61,7 @@ Evaluated across the exact same deterministic dataset of **750 payment failures*
 | **[TRAI Quiet Hours Suppressed](#rule-3-trai-quiet-hours)** | 0 delayed (Violated night rules) | **42 DND / Quiet Numbers Held** | Zero TRAI UCC/DND Breaches |
 | **[Active Dispute / Fraud Freezes](#rule-4-cpa-2019-dispute-lock)** | 0 frozen (Dunning continued on fraud) | **20 Immediate Freezes Enforced** | Full CPA 2019 Anti-Harassment Safety |
 | **Promise-to-Pay (PTP) Honored** | 0 honored (Interrupted promise) | **33 Accounts Frozen in Grace Window** | Maximum Customer Goodwill & Trust |
-| **[Tamper-Evident Ledger Integrity](#rule-5-dpdp-act-2023)** | None (Unverifiable logs) | **2,548 SHA-256 Chained Blocks** | Verified Blockchain-Grade Auditability |
+| **[Tamper-Evident Ledger Integrity](#rule-7-cryptographic-audit-ledger)** | None (Unverifiable logs) | **2,548 SHA-256 Chained Blocks** | Verified Blockchain-Grade Auditability |
 
 ---
 
@@ -235,6 +235,11 @@ To win revenue back without causing regulatory fines, merchant churn, or harassm
 ### 6. ⏱️ MSMED Act 2006 (Sections 15 & 16) — 45-Day B2B Payment Boundaries
 * **What the law mandates**: Invoices from Micro and Small Enterprises must be settled within agreed periods not exceeding 45 days, after which penal compound interest applies.
 * **What our agent enforces**: Overdue commercial invoices approaching 45 days bypass standard automated reminders and are immediately escalated to merchant finance operations.
+
+<a id="rule-7-cryptographic-audit-ledger"></a>
+### 7. 🛡️ Cryptographic SHA-256 Audit Trail & Ledger Integrity (Section 10 Standard)
+* **What the engineering & audit standard mandates**: Every state transition must produce an immutable record linking back to the previous block's SHA-256 hash ($\text{SHA-256}(\text{prev\_hash} \parallel \text{event\_data})$) to guarantee zero post-hoc log tampering.
+* **What our agent enforces**: All 2,548 transition events across the batch simulation form a verifiable cryptographic chain from genesis block `0000...0000` to the final settlement, with automated integrity verification on every audit export.
 
 ---
 
