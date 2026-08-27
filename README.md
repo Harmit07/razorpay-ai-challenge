@@ -26,7 +26,7 @@ Our platform acts as a **smart, statutory-compliant revenue recovery orchestrato
 
 ---
 
-## ⚡ 5-Second Quickstart (For Judges & Reviewers)
+## ⚡ 5-Second Quickstart
 
 ```bash
 # 1. Launch the Live Enterprise FinTech SaaS Dashboard
@@ -202,9 +202,9 @@ stateDiagram-v2
 
 ---
 
-## 💥 Live Chaos & Fault Injection Sandbox (For Evaluators)
+## 💥 Live Chaos & Fault Injection Sandbox
 
-Inside the web dashboard, evaluators can interact with the **Live Chaos Sandbox** to test how the system reacts in real time to unexpected production failures:
+Inside the web dashboard, users can interact with the **Live Chaos Sandbox** to test how the system reacts in real time to unexpected production failures:
 
 1. **⚡ Inject CBS Bank Outage (HDFC 503)**:
    * Simulates core banking downtime (`bank_server_down`).
