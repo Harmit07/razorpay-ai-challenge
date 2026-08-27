@@ -10,6 +10,7 @@ let currentViewingTxnId = null;
 // Initialize Dashboard
 document.addEventListener("DOMContentLoaded", async () => {
   setupViewRouting();
+  setupSidebarResizer();
   await loadSummaryData();
   await loadTransactions();
 });
@@ -39,6 +40,58 @@ function setupViewRouting() {
       const viewName = item.getAttribute("data-view") || item.getAttribute("href").replace("#", "");
       switchView(viewName, true);
     });
+  });
+}
+
+function toggleSidebarCollapse() {
+  const sidebar = document.getElementById("appSidebar");
+  const mainContainer = document.querySelector(".main-container");
+  if (!sidebar || !mainContainer) return;
+
+  const isCollapsed = sidebar.classList.toggle("collapsed");
+  if (isCollapsed) {
+    mainContainer.style.marginLeft = "68px";
+  } else {
+    const width = localStorage.getItem("sidebarWidth") || "260px";
+    sidebar.style.width = width;
+    mainContainer.style.marginLeft = width;
+  }
+}
+
+function setupSidebarResizer() {
+  const sidebar = document.getElementById("appSidebar");
+  const resizer = document.getElementById("sidebarResizer");
+  const mainContainer = document.querySelector(".main-container");
+  if (!sidebar || !resizer || !mainContainer) return;
+
+  const savedWidth = localStorage.getItem("sidebarWidth") || "260px";
+  sidebar.style.width = savedWidth;
+  mainContainer.style.marginLeft = savedWidth;
+
+  let isResizing = false;
+
+  resizer.addEventListener("mousedown", (e) => {
+    isResizing = true;
+    resizer.classList.add("resizing");
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  });
+
+  window.addEventListener("mousemove", (e) => {
+    if (!isResizing) return;
+    const newWidth = Math.max(200, Math.min(e.clientX, 420));
+    sidebar.style.width = `${newWidth}px`;
+    mainContainer.style.marginLeft = `${newWidth}px`;
+    localStorage.setItem("sidebarWidth", `${newWidth}px`);
+  });
+
+  window.addEventListener("mouseup", () => {
+    if (isResizing) {
+      isResizing = false;
+      resizer.classList.remove("resizing");
+      document.body.style.cursor = "default";
+      document.body.style.userSelect = "auto";
+    }
   });
 }
 
@@ -107,7 +160,7 @@ function renderTransactions(txns) {
   tbody.innerHTML = "";
 
   if (txns.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 32px; color: var(--text-muted);">No matching transactions found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 32px; color: var(--text-muted);">No matching transactions found.</td></tr>`;
     return;
   }
 
@@ -116,8 +169,9 @@ function renderTransactions(txns) {
 
   displaySet.forEach((t) => {
     const tr = document.createElement("tr");
+    tr.onclick = () => openAuditModal(t.txn_id);
 
-    // 1. Classification Column (Recoverable vs Terminal Stop vs Human Review)
+    // 1. Classification (Recoverable vs Terminal Stop vs Human Review)
     let classPill = `<span class="badge-pill pill-success"><span class="badge-dot"></span>Recoverable</span>`;
     if (t.dispute_active || t.error_reason === "mandate_cancelled_by_user" || (t.attempt_history && t.attempt_history.length >= 3)) {
       classPill = `<span class="badge-pill pill-error"><span class="badge-dot"></span>Terminal Stop</span>`;
@@ -125,14 +179,14 @@ function renderTransactions(txns) {
       classPill = `<span class="badge-pill pill-warning"><span class="badge-dot"></span>Human Review</span>`;
     }
 
-    // 2. Compliance State Column (Specific Statutory Guard)
+    // 2. Compliance State (Specific Statutory Guard)
     const isExempt = ["mutual_fund", "insurance_premium", "credit_card_bill"].includes((t.category || "").toLowerCase()) || Boolean(t.is_afa_exempt);
     const statutoryCap = isExempt ? 100000.0 : 15000.0;
     const isRecurring = (t.txn_type || "").toLowerCase() === "recurring_subscription";
 
     let compPill = `<span class="badge-pill pill-neutral">Clear</span>`;
     if (t.dispute_active) {
-      compPill = `<span class="badge-pill pill-error">Dispute Locked (CPA 2019)</span>`;
+      compPill = `<span class="badge-pill pill-error">Dispute Locked</span>`;
     } else if (t.error_reason === "mandate_cancelled_by_user") {
       compPill = `<span class="badge-pill pill-warning">Revoked Mandate</span>`;
     } else if (t.is_dnd) {
@@ -148,14 +202,23 @@ function renderTransactions(txns) {
     const edgeBadge = t.edge_case_tag ? `<span class="tag-edge">${t.edge_case_tag}</span>` : "";
 
     tr.innerHTML = `
-      <td class="cell-mono"><strong>${t.txn_id}</strong>${edgeBadge}</td>
-      <td class="cell-amount">₹${t.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-      <td>${formatPaymentMethod(t.method)}</td>
-      <td><span class="cell-mono" style="font-size:11px; color:var(--text-secondary);">${t.error_reason}</span></td>
-      <td><span style="font-size:12px; color:var(--text-secondary);">${t.category}</span></td>
+      <td>
+        <div class="cell-mono"><strong>${t.txn_id}</strong></div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${formatPaymentMethod(t.method)} • ${t.category}</div>
+        ${edgeBadge}
+      </td>
+      <td>
+        <div class="cell-amount">₹${t.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+      </td>
+      <td>
+        <div class="cell-mono" style="font-size:12px; font-weight:500; color:var(--text-primary);">${t.error_reason}</div>
+        <div style="font-size:11px; color:var(--text-muted);">${t.customer_phone_masked || t.customer_email_masked || ""}</div>
+      </td>
       <td>${classPill}</td>
       <td>${compPill}</td>
-      <td><button class="btn-inspect" onclick="openAuditModal('${t.txn_id}')">Inspect</button></td>
+      <td style="text-align:right;">
+        <button class="btn-inspect" onclick="event.stopPropagation(); openAuditModal('${t.txn_id}')">Inspect</button>
+      </td>
     `;
     tbody.appendChild(tr);
   });
