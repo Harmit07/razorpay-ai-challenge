@@ -2,7 +2,7 @@
 
 **Dataset:** `synthetic_transactions_750.json`  
 **Total Volume Analyzed:** ₹22,771,364.25 (750 transactions)  
-**Evaluation Date:** 2026-08-27 11:17:50 UTC
+**Evaluation Date:** 2026-08-27 12:03:49 UTC
 
 ---
 

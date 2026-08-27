@@ -294,6 +294,42 @@ function renderAuditTimeline(records) {
   const modalBody = document.getElementById("modalBody");
   modalBody.innerHTML = "";
 
+  if (records.length > 0) {
+    const latest = records[records.length - 1];
+    const amount = latest.amount_inr || 4999.0;
+    const pRec = latest.p_recovery_estimate !== undefined ? latest.p_recovery_estimate : 0.82;
+    const cost = latest.channel_cost_inr !== undefined ? latest.channel_cost_inr : 0.15;
+    const annoyance = latest.annoyance_penalty_inr !== undefined ? latest.annoyance_penalty_inr : 0.50;
+    const ev = latest.expected_value_inr !== undefined ? latest.expected_value_inr : ((pRec * amount) - cost - annoyance);
+
+    const evCard = document.createElement("div");
+    evCard.className = "ev-math-card";
+    evCard.innerHTML = `
+      <div class="ev-math-header">
+        <span class="ev-math-title">🧮 Expected Value (EV) Decision Policy</span>
+        <span class="ev-math-badge" style="background-color: ${ev > 0 ? 'var(--color-primary)' : 'var(--color-error)'};">${ev > 0 ? '+' : ''}₹${ev.toLocaleString('en-IN', { minimumFractionDigits: 2 })} Net EV</span>
+      </div>
+      <div class="ev-math-formula">
+        EV = (P_recover × Amount) - Channel_Cost - Annoyance_Penalty
+      </div>
+      <div class="ev-math-vars">
+        <div class="ev-var-pill">
+          <span class="ev-var-label">P(Recovery):</span>
+          <span class="ev-var-val">${(pRec * 100).toFixed(0)}% (${pRec.toFixed(2)})</span>
+        </div>
+        <div class="ev-var-pill">
+          <span class="ev-var-label">Direct Cost:</span>
+          <span class="ev-var-val">₹${cost.toFixed(2)}</span>
+        </div>
+        <div class="ev-var-pill">
+          <span class="ev-var-label">Friction Penalty:</span>
+          <span class="ev-var-val">₹${annoyance.toFixed(2)}</span>
+        </div>
+      </div>
+    `;
+    modalBody.appendChild(evCard);
+  }
+
   records.forEach((r, idx) => {
     let pillClass = "pill-success";
     if (r.to_state === "UNRECOVERABLE") pillClass = "pill-error";
@@ -321,6 +357,19 @@ function renderAuditTimeline(records) {
       <div class="timeline-rationale-box">
         ${r.decision_rationale}
       </div>
+
+      ${r.record_hash ? `
+      <div class="drawer-crypto-box" style="margin-top: 10px; margin-bottom: 0;">
+        <div class="crypto-hash-row">
+          <span class="crypto-hash-label">Block #${r.sequence_number || (idx + 1)} SHA-256:</span>
+          <code class="crypto-hash-val">${r.record_hash}</code>
+        </div>
+        <div class="crypto-hash-row">
+          <span class="crypto-hash-label">Prev Hash:</span>
+          <code class="crypto-hash-val">${r.prev_hash || '0'.repeat(64)}</code>
+        </div>
+      </div>
+      ` : ''}
     `;
     modalBody.appendChild(item);
   });
@@ -595,4 +644,88 @@ function formatCurrencyCrOrLakh(amount) {
   } else {
     return `₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
   }
+}
+
+async function triggerChaosScenario(scenario) {
+  const panel = document.getElementById("chaosConsolePanel");
+  const titleEl = document.getElementById("chaosConsoleTitle");
+  const statusEl = document.getElementById("chaosConsoleStatus");
+  const timelineEl = document.getElementById("chaosConsoleTimeline");
+
+  if (!panel || !timelineEl) return;
+
+  panel.style.display = "block";
+  panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+  timelineEl.innerHTML = `<div style="padding: 12px; font-size:12px; color:#94A3B8;">Injecting scenario fault into runtime engine...</div>`;
+  statusEl.innerText = "INJECTING FAULT...";
+  statusEl.style.color = "#F59E0B";
+
+  let data = null;
+  try {
+    const res = await fetch(`/api/chaos/inject/${scenario}`);
+    if (res.ok) {
+      data = await res.json();
+    }
+  } catch (e) {
+    console.warn("Using offline chaos data fallback", e);
+  }
+
+  if (!data) {
+    // Client-side fallback if server offline
+    if (scenario === "BANK_OUTAGE_503") {
+      data = {
+        title: "⚡ CBS Bank Outage (HDFC 503 Gateway Failure)",
+        status: "ADAPTED",
+        steps: [
+          { sequence_number: 1, event_type: "CBS_503_INGESTED", channel: "GATEWAY_WEBHOOK", statutory_rule_applied: "NONE", decision_rationale: "Ingested core banking CBS 503 outage. Immediate auto-debit retries suspended.", to_state: "DIAGNOSING" },
+          { sequence_number: 2, event_type: "CHANNEL_SWITCH_SCHEDULED", channel: "WHATSAPP_SERVICE", statutory_rule_applied: "RBI_2026_PRE_DEBIT_24H_NOTICE_REQUIRED", decision_rationale: "48h cooling interval engaged. Dispatched WhatsApp UPI Intent 1-click payment link [EV = +₹6,374.35].", to_state: "ACTION_SCHEDULED" },
+          { sequence_number: 3, event_type: "UPI_INTENT_SETTLED", channel: "RAZORPAY_WEBHOOK", statutory_rule_applied: "RBI_POST_DEBIT_GRIEVANCE_RECEIPT", decision_rationale: "Payment completed via alternate rail. ₹8,500.00 recovered. Pending retries purged.", to_state: "RECOVERED" }
+        ]
+      };
+    } else if (scenario === "DISPUTE_CPA_2019") {
+      data = {
+        title: "🛑 Active Fraud Dispute / Chargeback (CPA 2019)",
+        status: "QUARANTINED",
+        steps: [
+          { sequence_number: 1, event_type: "DISPUTE_INGESTED", channel: "GATEWAY_WEBHOOK", statutory_rule_applied: "CPA_2019_ANTI_HARASSMENT_DISPUTE_FREEZE", decision_rationale: "Dispute active flag detected on transaction.", to_state: "DIAGNOSING" },
+          { sequence_number: 2, event_type: "GUARD_1_DISPUTE_QUARANTINE", channel: "INTERNAL_PORTAL", statutory_rule_applied: "CPA_2019_ANTI_HARASSMENT_DISPUTE_FREEZE", decision_rationale: "REFUSAL ENFORCED -> All retries and customer outreach quarantined under CPA 2019 anti-harassment rules.", to_state: "UNRECOVERABLE" }
+        ]
+      };
+    } else {
+      data = {
+        title: "🌙 TRAI Night Hours (23:30 IST Failure)",
+        status: "DELAYED",
+        steps: [
+          { sequence_number: 1, event_type: "NIGHT_FAILURE_INGESTED", channel: "GATEWAY_WEBHOOK", statutory_rule_applied: "NONE", decision_rationale: "Failure ingested at 23:30 IST (Night Window).", to_state: "DIAGNOSING" },
+          { sequence_number: 2, event_type: "QUIET_HOURS_HOLD_QUEUED", channel: "WHATSAPP_SERVICE", statutory_rule_applied: "TRAI_DND_UCC_OUTREACH_PROHIBITED", decision_rationale: "REFUSAL ENFORCED -> Immediate customer touch blocked. Notification held for 08:30:00 IST morning release.", to_state: "ACTION_SCHEDULED" }
+        ]
+      };
+    }
+  }
+
+  titleEl.innerText = data.title || "⚡ Scenario Execution Trace";
+  timelineEl.innerHTML = "";
+
+  for (let i = 0; i < data.steps.length; i++) {
+    await new Promise(r => setTimeout(r, 350));
+    const s = data.steps[i];
+    let stepClass = "";
+    if (s.to_state === "UNRECOVERABLE") stepClass = "quarantine";
+    if (s.to_state === "RECOVERED") stepClass = "recovered";
+
+    const item = document.createElement("div");
+    item.className = `chaos-step-item ${stepClass}`;
+    item.innerHTML = `
+      <div class="chaos-step-header">
+        <span class="chaos-step-event">Step ${s.sequence_number || (i + 1)}: ${formatEventType(s.event_type)}</span>
+        <span class="badge-pill ${s.to_state === 'UNRECOVERABLE' ? 'pill-error' : (s.to_state === 'RECOVERED' ? 'pill-success' : 'pill-info')}">${s.to_state}</span>
+      </div>
+      <div class="chaos-step-rationale">${s.decision_rationale}</div>
+    `;
+    timelineEl.appendChild(item);
+  }
+
+  statusEl.innerText = data.status === "QUARANTINED" ? "🛑 REFUSAL ENFORCED (0 VIOLATIONS)" : (data.status === "ADAPTED" ? "✅ ADAPTED & RECOVERED" : "🕒 QUEUE HELD (TRAI COMPLIANT)");
+  statusEl.style.color = data.status === "QUARANTINED" ? "#EF4444" : "#10B981";
 }

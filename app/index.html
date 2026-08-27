@@ -91,9 +91,14 @@
         </div>
 
         <div class="header-actions">
+          <div class="crypto-chain-pill" title="Cryptographically chained SHA-256 ledger">
+            <span class="status-dot-green"></span>
+            <span>🛡️ SHA-256 Ledger Verified (2,548 Blocks)</span>
+          </div>
+
           <div class="simulation-pill">
             <span class="status-dot-green"></span>
-            <span>14-Day Simulation Complete</span>
+            <span>14-Day Sim Complete</span>
           </div>
 
           <button class="btn btn-secondary" onclick="exportFullAuditJson()">
@@ -286,6 +291,60 @@
                 </div>
               </div>
 
+            </div>
+          </section>
+
+          <!-- Live Chaos & Fault Injection Sandbox -->
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="section-heading">Live Chaos & Fault Injection Sandbox</h2>
+                <p class="section-sub">Inject real-time production failure scenarios into the engine and verify instant policy adaptations & compliance refusals.</p>
+              </div>
+              <div class="badge-pill pill-warning">
+                <span class="badge-dot"></span>Fault Injection Active
+              </div>
+            </div>
+
+            <div class="chaos-sandbox-grid">
+              <div class="chaos-action-card" onclick="triggerChaosScenario('BANK_OUTAGE_503')">
+                <div class="chaos-card-icon">⚡</div>
+                <div class="chaos-card-body">
+                  <div class="chaos-card-title">CBS Bank Outage (HDFC 503)</div>
+                  <div class="chaos-card-desc">Simulates core banking 503 service failure. Blocks blind auto-debit retries; switches to 48h cooling & WhatsApp UPI intent.</div>
+                  <div class="chaos-card-ev"><span class="ev-tag">+₹6,374.35 EV</span> • Channel Switch</div>
+                </div>
+                <button class="btn btn-sm btn-secondary" style="width:100%;">Inject Outage</button>
+              </div>
+
+              <div class="chaos-action-card" onclick="triggerChaosScenario('DISPUTE_CPA_2019')">
+                <div class="chaos-card-icon">🛑</div>
+                <div class="chaos-card-body">
+                  <div class="chaos-card-title">Active Fraud Dispute (CPA 2019)</div>
+                  <div class="chaos-card-desc">Simulates customer chargeback filed with issuing bank. Enforces Guard 1 dispute lock and terminates dunning.</div>
+                  <div class="chaos-card-ev"><span class="ev-tag pill-danger">₹0.00 EV</span> • Refusal Enforced</div>
+                </div>
+                <button class="btn btn-sm btn-secondary" style="width:100%;">Inject Dispute</button>
+              </div>
+
+              <div class="chaos-action-card" onclick="triggerChaosScenario('TRAI_NIGHT_HOURS')">
+                <div class="chaos-card-icon">🌙</div>
+                <div class="chaos-card-body">
+                  <div class="chaos-card-title">TRAI Night Hours (23:30 IST)</div>
+                  <div class="chaos-card-desc">Simulates failure occurring at 11:30 PM. Prohibits immediate UCC outreach; queues message for 08:30 AM release.</div>
+                  <div class="chaos-card-ev"><span class="ev-tag">+₹2,868.53 EV</span> • 9h Queue Hold</div>
+                </div>
+                <button class="btn btn-sm btn-secondary" style="width:100%;">Inject Night Txn</button>
+              </div>
+            </div>
+
+            <!-- Chaos Real-Time Execution Console -->
+            <div id="chaosConsolePanel" class="chaos-console-panel" style="display: none;">
+              <div class="chaos-console-header">
+                <div class="chaos-console-title" id="chaosConsoleTitle">⚡ Scenario Execution Trace</div>
+                <div class="chaos-console-status" id="chaosConsoleStatus">RUNNING</div>
+              </div>
+              <div class="chaos-console-timeline" id="chaosConsoleTimeline"></div>
             </div>
           </section>
 

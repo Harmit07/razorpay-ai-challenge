@@ -5,10 +5,11 @@ adhering strictly to compliance-rules.md (Section 10) and DPDP Act 2023 PII mask
 """
 
 from __future__ import annotations
+import hashlib
 import json
 import uuid
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 
@@ -25,8 +26,12 @@ class AuditRecord(BaseModel):
     """
     Immutable compliance audit record emitted per state machine transition.
     Adheres strictly to the schema specification in compliance-rules.md Section 10.
+    Cryptographically chained via SHA-256 to ensure tamper-evident audit trails.
     """
     audit_id: str = Field(default_factory=lambda: f"aud_{uuid.uuid4().hex[:12]}")
+    sequence_number: int = Field(default=0, description="Monotonically increasing ledger sequence number")
+    prev_hash: str = Field(default="0" * 64, description="SHA-256 hash of previous audit record in chain")
+    record_hash: str = Field(default="", description="Cryptographic SHA-256 hash of this record")
     timestamp: str  # ISO-8601 formatted UTC timestamp
     entity_id: str  # Transaction ID / Subscription ID
     customer_masked: str  # Phone / Email PII masked (DPDP 2023)
@@ -47,6 +52,12 @@ class AuditRecord(BaseModel):
     internal_policy_applied: str
     decision_rationale: str
     outcome_status: str
+
+    # Economic Expected Value (EV) Modeling
+    p_recovery_estimate: Optional[float] = Field(default=None, description="Probability of recovery p_recover in [0, 1]")
+    channel_cost_inr: Optional[float] = Field(default=None, description="Marginal channel cost in INR")
+    annoyance_penalty_inr: Optional[float] = Field(default=None, description="Customer friction penalty in INR")
+    expected_value_inr: Optional[float] = Field(default=None, description="Net Expected Value = (p_recover * amount) - cost - annoyance")
     
     # Grievance & Regulatory Tracking
     grievance_details_included: bool = True
@@ -56,13 +67,21 @@ class AuditRecord(BaseModel):
 
 class ComplianceAuditLogger:
     """
-    Central audit logging and compliance export engine.
-    Records transition logs, verifies PII masking integrity, and exports human-readable JSON/Markdown.
+    Central cryptographic audit logging and compliance export engine.
+    Records transition logs with SHA-256 hash chaining, verifies PII masking integrity,
+    and exports human-readable JSON/Markdown audit ledgers.
     """
 
     def __init__(self):
         self._records: List[AuditRecord] = []
         self._records_by_entity: Dict[str, List[AuditRecord]] = {}
+        self._last_hash: str = "0" * 64
+
+    def compute_record_hash(self, record_dict: Dict[str, Any], prev_hash: str) -> str:
+        """Computes deterministic SHA-256 hash over canonical record JSON and prev_hash."""
+        hashable_data = {k: v for k, v in record_dict.items() if k != "record_hash"}
+        canonical_json = json.dumps(hashable_data, sort_keys=True)
+        return hashlib.sha256(f"{prev_hash}:{canonical_json}".encode("utf-8")).hexdigest()
 
     def log_transition(
         self,
@@ -78,13 +97,17 @@ class ComplianceAuditLogger:
         communication_type: str = "SERVICE",
         afa_required: bool = False,
         afa_status: str = "NOT_REQUIRED",
+        p_recovery_estimate: Optional[float] = None,
+        channel_cost_inr: Optional[float] = None,
+        annoyance_penalty_inr: Optional[float] = None,
+        expected_value_inr: Optional[float] = None,
         grievance_details_included: bool = True,
         active_ptp_date: Optional[datetime] = None,
         stop_rule_triggered: Optional[str] = None,
         timestamp: Optional[datetime] = None,
     ) -> AuditRecord:
         """
-        Creates and stores an immutable AuditRecord for a state transition.
+        Creates and cryptographically chains an immutable AuditRecord for a state transition.
         """
         ts = timestamp or datetime.now(timezone.utc)
         ts_str = ts.isoformat() if isinstance(ts, datetime) else str(ts)
@@ -96,7 +119,18 @@ class ComplianceAuditLogger:
         # Ensure masked PII
         customer_masked = event.customer_phone_masked or event.customer_email_masked or "+91-98******0000"
 
+        # Default EV Calculation if not explicitly supplied
+        p_rec = p_recovery_estimate if p_recovery_estimate is not None else (0.82 if "insufficient_funds" in event.error_reason else 0.45)
+        cost = channel_cost_inr if channel_cost_inr is not None else (0.15 if channel == "WHATSAPP_SERVICE" else (3.50 if channel == "VOICE_BOT" else 0.0))
+        annoyance = annoyance_penalty_inr if annoyance_penalty_inr is not None else (0.50 if channel == "WHATSAPP_SERVICE" else (4.00 if channel == "VOICE_BOT" else 0.0))
+        ev = expected_value_inr if expected_value_inr is not None else round((p_rec * event.amount) - cost - annoyance, 2)
+
+        seq_num = len(self._records) + 1
+        prev_hash = self._last_hash
+
         record = AuditRecord(
+            sequence_number=seq_num,
+            prev_hash=prev_hash,
             timestamp=ts_str,
             entity_id=event.txn_id,
             customer_masked=customer_masked,
@@ -113,10 +147,18 @@ class ComplianceAuditLogger:
             internal_policy_applied=internal_policy_applied,
             decision_rationale=decision_rationale,
             outcome_status=outcome_status,
+            p_recovery_estimate=p_rec,
+            channel_cost_inr=cost,
+            annoyance_penalty_inr=annoyance,
+            expected_value_inr=ev,
             grievance_details_included=grievance_details_included,
             active_ptp_date=ptp_str,
             stop_rule_triggered=stop_rule_triggered,
         )
+
+        # Compute and attach cryptographic SHA-256 hash
+        record.record_hash = self.compute_record_hash(record.model_dump(), prev_hash)
+        self._last_hash = record.record_hash
 
         self._records.append(record)
         if event.txn_id not in self._records_by_entity:
@@ -124,6 +166,21 @@ class ComplianceAuditLogger:
         self._records_by_entity[event.txn_id].append(record)
 
         return record
+
+    def verify_chain_integrity(self) -> Tuple[bool, int, Optional[str]]:
+        """
+        Cryptographically verifies the SHA-256 hash chain from genesis to the latest record.
+        Returns: (is_valid, verified_count, error_message)
+        """
+        current_prev = "0" * 64
+        for idx, r in enumerate(self._records):
+            if r.prev_hash != current_prev:
+                return False, idx, f"Hash break at sequence {r.sequence_number}: expected prev_hash {current_prev}, got {r.prev_hash}"
+            expected_hash = self.compute_record_hash(r.model_dump(), current_prev)
+            if r.record_hash != expected_hash:
+                return False, idx, f"Tampered record at sequence {r.sequence_number}: expected {expected_hash}, got {r.record_hash}"
+            current_prev = r.record_hash
+        return True, len(self._records), None
 
     def get_trail_for_entity(self, entity_id: str) -> List[AuditRecord]:
         """Returns all audit logs for a given transaction or subscription."""
@@ -186,10 +243,14 @@ class ComplianceAuditLogger:
                 stop_counts[r.stop_rule_triggered] = stop_counts.get(r.stop_rule_triggered, 0) + 1
             afa_counts[r.afa_status] = afa_counts.get(r.afa_status, 0) + 1
 
+        is_chain_valid, verified_count, _ = self.verify_chain_integrity()
         return {
             "total_audit_events": total,
             "statutory_rules_invoked": statutory_counts,
             "stopping_rules_triggered": stop_counts,
             "afa_status_distribution": afa_counts,
             "pii_redaction_verified": True,
+            "hash_chain_verified": is_chain_valid,
+            "hash_chain_verified_count": verified_count,
+            "last_block_hash": self._last_hash,
         }

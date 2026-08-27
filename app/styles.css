@@ -1173,6 +1173,286 @@ body {
   line-height: 1.4;
 }
 
+/* Cryptographic Ledger Header Badge */
+.crypto-chain-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 500;
+  color: #15803D;
+  white-space: nowrap;
+}
+
+/* Chaos & Fault Injection Sandbox */
+.chaos-sandbox-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.chaos-action-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  cursor: pointer;
+  transition: all 180ms ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.chaos-action-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+  transform: translateY(-2px);
+}
+
+.chaos-card-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.chaos-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.chaos-card-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin-bottom: 12px;
+}
+
+.chaos-card-ev {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.ev-tag {
+  background-color: #EFF6FF;
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.ev-tag.pill-danger {
+  background-color: #FEF2F2;
+  color: #DC2626;
+}
+
+/* Chaos Console Execution Panel */
+.chaos-console-panel {
+  margin-top: 20px;
+  background-color: #0F172A;
+  border-radius: var(--radius-md);
+  padding: 16px;
+  color: #F8FAFC;
+  box-shadow: var(--shadow-md);
+}
+
+.chaos-console-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+}
+
+.chaos-console-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #93C5FD;
+}
+
+.chaos-console-status {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  background-color: #1E293B;
+  color: #38BDF8;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #334155;
+}
+
+.chaos-console-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chaos-step-item {
+  background-color: #1E293B;
+  border-left: 3px solid #3B82F6;
+  border-radius: 0 4px 4px 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  animation: fadeIn 200ms ease-out;
+}
+
+.chaos-step-item.quarantine {
+  border-left-color: #EF4444;
+}
+
+.chaos-step-item.recovered {
+  border-left-color: #10B981;
+}
+
+.chaos-step-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.chaos-step-event {
+  font-weight: 600;
+  color: #F1F5F9;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.chaos-step-time {
+  font-size: 10px;
+  color: #94A3B8;
+  font-family: var(--font-mono);
+}
+
+.chaos-step-rationale {
+  color: #CBD5E1;
+  line-height: 1.4;
+  font-size: 11px;
+}
+
+/* Expected Value (EV) Decision Engine Card in Drawer */
+.ev-math-card {
+  background: linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 100%);
+  border: 1px solid #DBEAFE;
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.ev-math-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.ev-math-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E3A8A;
+}
+
+.ev-math-badge {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  background-color: #2563EB;
+  color: #FFFFFF;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.ev-math-formula {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #3B82F6;
+  background-color: #FFFFFF;
+  border: 1px dashed #BFDBFE;
+  padding: 6px 10px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.ev-math-vars {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  font-size: 11px;
+}
+
+.ev-var-pill {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ev-var-label {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.ev-var-val {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+/* Drawer Cryptographic Block Hash View */
+.drawer-crypto-box {
+  background-color: #F8FAFC;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  font-size: 11px;
+}
+
+.crypto-hash-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.crypto-hash-row:last-child {
+  margin-bottom: 0;
+}
+
+.crypto-hash-label {
+  color: var(--text-muted);
+  font-weight: 500;
+  min-width: 120px;
+}
+
+.crypto-hash-val {
+  color: #0F172A;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  word-break: break-all;
+  background-color: #FFFFFF;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid #E2E8F0;
+  flex-grow: 1;
+}
+
 /* Responsive adjustments */
 @media (max-width: 1024px) {
   .kpi-grid {
@@ -1182,6 +1462,9 @@ body {
     grid-template-columns: 1fr;
   }
   .benchmark-row {
+    grid-template-columns: 1fr;
+  }
+  .chaos-sandbox-grid {
     grid-template-columns: 1fr;
   }
 }
