@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Razorpay AI Revenue Recovery Agent — Executive Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar / Brand Header -->
+    <header class="top-nav">
+      <div class="nav-brand">
+        <div class="brand-badge">⚡ RAZORPAY AI AGENT</div>
+        <h1>Autonomous Revenue Recovery Engine</h1>
+        <p class="subtitle">Compliance-Bounded Intelligent Dunning & Diagnostics • 750 Transactions Benchmark</p>
+      </div>
+      <div class="nav-actions">
+        <span class="live-pill"><span class="pulse-dot"></span> SIMULATED CLOCK ACTIVE</span>
+        <button class="btn btn-primary" onclick="runDemoSimulation()">▶ Run Live Demo</button>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-content">
+      
+      <!-- Headline KPI Cards -->
+      <section class="kpi-grid">
+        <div class="kpi-card highlight-blue">
+          <div class="kpi-label">TOTAL VOLUME AT RISK</div>
+          <div class="kpi-value" id="kpi-total-volume">₹2,26,24,681.80</div>
+          <div class="kpi-sub">750 Ingested Failed Transactions</div>
+        </div>
+
+        <div class="kpi-card highlight-green">
+          <div class="kpi-label">AI AGENT RECOVERED REVENUE</div>
+          <div class="kpi-value" id="kpi-ai-recovered">₹57,87,950.92</div>
+          <div class="kpi-sub"><span class="badge badge-success">25.6% Yield</span> (194 Recovered Txns)</div>
+        </div>
+
+        <div class="kpi-card highlight-purple">
+          <div class="kpi-label">INCREMENTAL LIFT vs NAIVE</div>
+          <div class="kpi-value" id="kpi-incremental">+₹38,99,889.97</div>
+          <div class="kpi-sub"><span class="badge badge-purple">+206.6% Lift</span> over 24h Baseline</div>
+        </div>
+
+        <div class="kpi-card highlight-shield">
+          <div class="kpi-label">STATUTORY COMPLIANCE VIOLATIONS</div>
+          <div class="kpi-value" id="kpi-violations">0 <span class="sub-zero">/ 612 by Baseline</span></div>
+          <div class="kpi-sub"><span class="badge badge-shield">100% Invariant Safe</span> (RBI / DND / CCPA)</div>
+        </div>
+      </section>
+
+      <!-- Head-to-Head Comparative Benchmark Widget -->
+      <section class="section-card benchmark-section">
+        <div class="section-header">
+          <div>
+            <h2>🥊 Head-to-Head Benchmark: AI Recovery Agent vs. Naive 24h Baseline</h2>
+            <p class="section-desc">Comparison on the exact same 750-transaction portfolio across a 14-day horizon.</p>
+          </div>
+          <div class="tag-row">
+            <span class="tag tag-ai">● AI Agent (Dynamic + Safe)</span>
+            <span class="tag tag-naive">● Naive (Blind 1-Retry)</span>
+          </div>
+        </div>
+
+        <div class="comparison-grid">
+          <!-- Metric 1: Revenue Recovered -->
+          <div class="metric-bar-box">
+            <div class="metric-header">
+              <span class="m-title">Money Recovered (INR)</span>
+              <span class="m-diff">+₹39.00 Lakhs (+206.6% Lift)</span>
+            </div>
+            <div class="bar-group">
+              <div class="bar-row">
+                <span class="bar-tag">AI</span>
+                <div class="bar-track"><div class="bar-fill bg-green" style="width: 100%;">₹57.88 L</div></div>
+              </div>
+              <div class="bar-row">
+                <span class="bar-tag">Naive</span>
+                <div class="bar-track"><div class="bar-fill bg-gray" style="width: 32.6%;">₹18.88 L</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Metric 2: Compliance Violations -->
+          <div class="metric-bar-box">
+            <div class="metric-header">
+              <span class="m-title">Statutory Violations Committed</span>
+              <span class="m-diff font-green">100% Risk Elimination</span>
+            </div>
+            <div class="bar-group">
+              <div class="bar-row">
+                <span class="bar-tag">AI</span>
+                <div class="bar-track"><div class="bar-fill bg-shield" style="width: 2%;">0 Violations</div></div>
+              </div>
+              <div class="bar-row">
+                <span class="bar-tag">Naive</span>
+                <div class="bar-track"><div class="bar-fill bg-red" style="width: 100%;">612 Violations ⚠️</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Statutory Breakdown Callout -->
+        <div class="compliance-callout-box">
+          <div class="callout-badge">🛡️ STATUTORY GUARDS IN ACTION:</div>
+          <div class="callout-items">
+            <span>• <strong>261</strong> Mandatory 24h Pre-Debit Notices</span>
+            <span>• <strong>50</strong> AFA Caps Guarded (&gt;₹15k / &gt;₹1L)</span>
+            <span>• <strong>18</strong> Revoked Mandates Ceased</span>
+            <span>• <strong>21</strong> TRAI DND Suppressed</span>
+            <span>• <strong>9</strong> Fraud Disputes Locked</span>
+            <span>• <strong>42</strong> Active PTP Holds Frozen</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Per-Transaction Audit Viewer Section -->
+      <section class="section-card audit-section">
+        <div class="section-header">
+          <div>
+            <h2>🔍 Per-Transaction Regulatory Audit Trail Explorer</h2>
+            <p class="section-desc">Inspect exact diagnostic triage, state transitions, statutory rules, masked PII, and refusal logs.</p>
+          </div>
+          <div class="search-controls">
+            <input type="text" id="searchInput" placeholder="Search Txn ID, Mandate ID, or Phone..." onkeyup="filterTransactions()">
+            <select id="stateFilter" onchange="filterTransactions()">
+              <option value="ALL">All Outcomes</option>
+              <option value="RECOVERED">Recovered</option>
+              <option value="UNRECOVERABLE">Compliantly Stopped</option>
+              <option value="HUMAN_REVIEW">Human Review</option>
+            </select>
+            <select id="edgeFilter" onchange="filterTransactions()">
+              <option value="ALL">All Edge Cases</option>
+              <option value="EDGE_01">EDGE-01: Zombie Retry 5x</option>
+              <option value="EDGE_02">EDGE-02: ₹15,001 AFA Straddle</option>
+              <option value="EDGE_03">EDGE-03: ₹1,00,001 Exemption</option>
+              <option value="EDGE_04">EDGE-04: Expiring Mandate</option>
+              <option value="EDGE_05">EDGE-05: Quiet Hours Sleep</option>
+              <option value="EDGE_06">EDGE-06: PTP Race Condition</option>
+              <option value="EDGE_07">EDGE-07: Mandate Revoked</option>
+              <option value="EDGE_08">EDGE-08: Active Fraud Dispute</option>
+              <option value="EDGE_09">EDGE-09: MSMED 45-Day Clash</option>
+              <option value="EDGE_10">EDGE-10: Ambiguous High Risk</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="table-container">
+          <table class="data-table" id="transactionsTable">
+            <thead>
+              <tr>
+                <th>Transaction ID</th>
+                <th>Amount (INR)</th>
+                <th>Payment Method</th>
+                <th>Error Reason</th>
+                <th>Type / Category</th>
+                <th>Customer (Masked)</th>
+                <th>Compliance Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- Dynamically Populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Modal Audit Trail Drawer -->
+    <div class="modal-backdrop" id="auditModal" onclick="closeModal(event)">
+      <div class="modal-drawer" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <h3 id="modalTxnId">Audit Log: pay_xxxx</h3>
+            <span class="modal-sub" id="modalCustomer">Customer Masked: +91-98******0000</span>
+          </div>
+          <button class="btn-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+          <!-- Timeline will be rendered here -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
