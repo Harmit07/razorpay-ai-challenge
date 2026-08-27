@@ -149,6 +149,104 @@ flowchart TD
 
 ---
 
+## 🔄 Recovery Agent State Machine & Lifecycle Transitions
+
+The recovery lifecycle is managed by a deterministic finite state machine (FSM) enforcing all statutory waiting periods, cooling-off intervals, stopping rules, and escalation paths:
+
+```mermaid
+stateDiagram-v2
+    [*] --> DETECTED: Webhook / Drop-Off Ingested
+
+    DETECTED --> DIAGNOSING: Ingest Payload & Parse Error
+    
+    state DIAGNOSING {
+        [*] --> ErrorClassification
+        ErrorClassification --> StatutoryComplianceCheck: Bucket Assigned (1-12)
+        StatutoryComplianceCheck --> ConfidenceEvaluation: AFA & Cap Checked
+        ConfidenceEvaluation --> [*]
+    }
+
+    DIAGNOSING --> ACTION_SCHEDULED: High Confidence (Soft / Link Action)
+    DIAGNOSING --> HUMAN_REVIEW: Low Confidence < 0.70 / Fraud Flag
+    DIAGNOSING --> UNRECOVERABLE: Hard Stop (Revoked / Expired / DND Block)
+
+    state HUMAN_REVIEW {
+        [*] --> OperatorTriage
+        OperatorTriage --> Approved: Manual Override / Corrected
+        OperatorTriage --> Rejected: Fraud Confirmed / Bad Debt
+    }
+
+    HUMAN_REVIEW --> ACTION_SCHEDULED: Operator Approved
+    HUMAN_REVIEW --> UNRECOVERABLE: Operator Rejected / Blocked
+
+    state ACTION_SCHEDULED {
+        [*] --> QuietHoursCheck
+        QuietHoursCheck --> PreDebitAlertQueued: Inside 08:00-20:00 Window
+        QuietHoursCheck --> DelayedQueue: Outside Window (Hold till 08:05)
+        DelayedQueue --> PreDebitAlertQueued: Release at 08:05 AM IST
+        PreDebitAlertQueued --> SalaryCycleSnapping: >= 24h Notice Dispatched
+        SalaryCycleSnapping --> [*]
+    }
+
+    ACTION_SCHEDULED --> RETRYING: 24h Notice Period Elapsed & Cooling Passed
+
+    state RETRYING {
+        [*] --> ExecuteIntervention
+        ExecuteIntervention --> AutoDebitAttempt: Soft Failure (Amount <= Cap)
+        ExecuteIntervention --> DynamicLinkDispatched: AFA (>15k/1L) or Instrument Update
+        ExecuteIntervention --> WhatsAppNudgeSent: UPI Intent Deep-Link
+    }
+
+    RETRYING --> RECOVERED: Payment Captured / Succeeded (STOP_PAID)
+    RETRYING --> ESCALATED: Debit Failed & Attempts < 3
+    RETRYING --> UNRECOVERABLE: Attempt Cap Hit (Max 3) / Customer Opt-Out
+
+    state ESCALATED {
+        [*] --> MultiChannelLadder
+        MultiChannelLadder --> VoiceRecoveryBot: Hinglish Interactive Call
+        MultiChannelLadder --> PTPNegotiation: Record Customer Commitment
+        PTPNegotiation --> PTP_FROZEN: PTP Date Set (STOP_PTP_ACTIVE)
+    }
+
+    PTP_FROZEN --> RETRYING: PTP Date + 24h Grace Elapsed
+    PTP_FROZEN --> RECOVERED: Paid During Grace Window
+
+    ESCALATED --> RETRYING: Retry #2 or #3 Queued (48h Cooling)
+    ESCALATED --> RECOVERED: Paid via Escalated Link / Call
+    ESCALATED --> UNRECOVERABLE: 14-Day Dunning Ceiling / Opt-Out
+
+    state RECOVERED {
+        [*] --> LogAuditRecord
+        LogAuditRecord --> DispatchPostDebitGrievanceReceipt
+        DispatchPostDebitGrievanceReceipt --> [*]
+    }
+
+    state UNRECOVERABLE {
+        [*] --> GracefulSubscriptionPause
+        GracefulSubscriptionPause --> LogAuditTermination
+        LogAuditTermination --> [*]
+    }
+
+    RECOVERED --> [*]
+    UNRECOVERABLE --> [*]
+```
+
+### State Machine Transition Specification
+
+| State | Entry Trigger | Guard Conditions & Invariants | Exit Transition & Destination |
+| :--- | :--- | :--- | :--- |
+| **`DETECTED`** | Razorpay webhook (`payment.failed`, `subscription.halted`), drop-off telemetry, or B2B invoice due event. | Event payload must contain valid entity identifier and amount. | Immediate $\rightarrow$ **`DIAGNOSING`**. |
+| **`DIAGNOSING`** | Receipt of raw failure payload. | Evaluates 12 error taxonomy buckets, checks RBI AFA caps (₹15k / ₹1L), evaluates LLM confidence. | • $\text{Conf} \ge 0.85$ (Soft/Link) $\rightarrow$ **`ACTION_SCHEDULED`**<br>• $\text{Conf} < 0.70$ / Fraud Flag $\rightarrow$ **`HUMAN_REVIEW`**<br>• Hard Revocation/Expiry $\rightarrow$ **`UNRECOVERABLE`**. |
+| **`HUMAN_REVIEW`** | Low classifier confidence, ambiguous error text, or fraud risk. | Execution frozen pending human operator audit. | • Operator Approved $\rightarrow$ **`ACTION_SCHEDULED`**<br>• Operator Rejected $\rightarrow$ **`UNRECOVERABLE`**. |
+| **`ACTION_SCHEDULED`** | Diagnosis completed or operator approval. | • TRAI Quiet Hours: 08:00–20:00 window enforced.<br>• Statutory $\ge 24\text{h}$ Pre-Debit notification queued.<br>• Salary cycle snapping (1st–5th / 25th–30th). | After $\ge 24\text{h}$ notice window and cooling interval elapse $\rightarrow$ **`RETRYING`**. |
+| **`RETRYING`** | Expiration of 24h pre-debit notice window and 48h cooling interval. | Increment `retry_count`; dispatch auto-debit API, dynamic AFA link, or UPI intent. | • Debit / Link Success $\rightarrow$ **`RECOVERED`**<br>• Debit Failed (`retry_count < 3`) $\rightarrow$ **`ESCALATED`**<br>• Max Retries Hit (3) / Opt-Out $\rightarrow$ **`UNRECOVERABLE`**. |
+| **`ESCALATED`** | Unsuccessful soft retry attempt or high-value drop-off. | Multi-channel ladder (WhatsApp interactive card $\rightarrow$ Hinglish Voice Call $\rightarrow$ PTP negotiation). | • Customer sets PTP $\rightarrow$ **`PTP_FROZEN`**<br>• Scheduled next retry $\rightarrow$ **`RETRYING`**<br>• Paid $\rightarrow$ **`RECOVERED`**<br>• Dunning ceiling (14d) reached $\rightarrow$ **`UNRECOVERABLE`**. |
+| **`PTP_FROZEN`** | Customer promises to pay by date $X$ (`STOP_PTP_ACTIVE`). | **All automated retries and calls frozen** until date $X + 24\text{ hours}$. | • Paid during window $\rightarrow$ **`RECOVERED`**<br>• Grace window expires unpaid $\rightarrow$ **`RETRYING`**. |
+| **`RECOVERED`** | Webhook received: `payment.captured`, `subscription.charged`, or `invoice.paid`. | **Terminal Success State:** Instantly purge pending retry queues (`STOP_PAID`); dispatch post-debit receipt with grievance details; log audit record. | Terminal $\rightarrow$ **`[*]`**. |
+| **`UNRECOVERABLE`** | Triggered by `STOP_MAX_RETRIES`, `STOP_MANDATE_EXPIRED`, `STOP_MANDATE_REVOKED`, `STOP_OPT_OUT`, or `STOP_DISPUTE_FRAUD`. | **Terminal Closed State:** Gracefully pause subscription, release resources, record immutable audit log, route case to human ops. | Terminal $\rightarrow$ **`[*]`**. |
+
+---
+
 ## 🔄 Architectural Stage Breakdown
 
 ### 1. Ingestion Layer (`Revenue at Risk`)
