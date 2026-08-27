@@ -133,16 +133,26 @@ class RecoveryDashboardHandler(SimpleHTTPRequestHandler):
         return matches
 
 
-def start_server(port: int = 8080):
-    server_address = ("", port)
-    httpd = HTTPServer(server_address, RecoveryDashboardHandler)
-    print(f"🚀 AI Revenue Recovery Dashboard running at http://localhost:{port}")
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        print("\nStopping dashboard server.")
-        httpd.server_close()
+def start_server(port: int = 8888):
+    # Find free port starting from requested port
+    for p in range(port, port + 20):
+        try:
+            server_address = ("127.0.0.1", p)
+            httpd = HTTPServer(server_address, RecoveryDashboardHandler)
+            print("\n" + "=" * 70)
+            print(f"🚀 RAZORPAY AI RECOVERY AGENT DASHBOARD IS READY!")
+            print(f"👉 OPEN IN BROWSER: http://127.0.0.1:{p} or http://localhost:{p}")
+            print("=" * 70 + "\n")
+            httpd.serve_forever()
+            break
+        except OSError:
+            continue
+        except KeyboardInterrupt:
+            print("\nStopping dashboard server.")
+            break
 
 
 if __name__ == "__main__":
-    start_server(8080)
+    import sys
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8888
+    start_server(port)
