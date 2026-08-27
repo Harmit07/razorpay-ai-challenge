@@ -85,3 +85,17 @@ During the spot-check of `EDGE-09` (`pay_edge09_msmed45d`), we discovered a subt
 * **10 Cases Dropped to $\text{Confidence} = 0.60$:**
   * When `risk_flag == True` or `dispute_active == True`, the classifier intentionally depresses confidence to `0.60` (< 0.70 threshold) to enforce the architectural safety gate and quarantine cases into `HUMAN_REVIEW`.
   * This prevents automated retries or communications on potential fraud accounts, protecting merchants from regulatory penalties.
+
+---
+
+## ⚠️ Where the Classifier is Weakest (Known Limitations & Edge Cases)
+
+1. **Unrecognized Proprietary Issuer Codes:**
+   * *The Limitation:* Niche regional banks occasionally return internal CBS codes (e.g., `ERR_CBS_HEX_0x899`) without descriptive error text or NPCI standardized reason mapping.
+   * *System Behavior:* The classifier correctly recognizes low confidence ($0.50$) and routes to `HUMAN_REVIEW` with an auditable explanation rather than making a wild guess.
+2. **Ambiguous or Contradictory Conversational Transcripts:**
+   * *The Limitation:* Voice/chat responses where customers give contradictory statements (e.g., *"Maybe I will pay on the 10th if I don't cancel"*).
+   * *System Behavior:* The PTP parser defaults to conservative manual validation when intent confidence is $< 0.70$.
+3. **Partial Recoveries with Altered Invoice Contexts:**
+   * *The Limitation:* High-ticket commercial invoices where multiple micro-installments occur without webhook metadata linking back to the original invoice ID.
+   * *System Behavior:* Scoped to human ops review to prevent duplicate dunning.
