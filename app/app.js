@@ -759,6 +759,134 @@ async function runDemoSimulation() {
   }
 }
 
+function resetSimulationState() {
+  simulationCalculated = false;
+  allTransactions = [];
+  allAuditRecords = [];
+
+  // 1. Reset Overview Core KPIs
+  const kpiTotal = document.getElementById("kpi-total-volume");
+  const kpiAi = document.getElementById("kpi-ai-recovered");
+  const kpiInc = document.getElementById("kpi-incremental");
+  const kpiVio = document.getElementById("kpi-violations");
+
+  if (kpiTotal) kpiTotal.innerText = "—";
+  if (kpiAi) kpiAi.innerText = "—";
+  if (kpiInc) kpiInc.innerText = "—";
+  if (kpiVio) kpiVio.innerText = "—";
+
+  const subTotal = document.getElementById("kpi-total-volume-sub");
+  const subAi = document.getElementById("kpi-ai-recovered-sub");
+  const subInc = document.getElementById("kpi-incremental-sub");
+  const subVio = document.getElementById("kpi-violations-sub");
+
+  if (subTotal) subTotal.innerText = "Awaiting simulation";
+  if (subAi) subAi.innerText = "Awaiting simulation";
+  if (subInc) subInc.innerText = "Awaiting simulation";
+  if (subVio) subVio.innerText = "Awaiting simulation";
+
+  // 2. Reset Overview Meta Bar
+  const metaBar = document.getElementById("overviewMetaBar");
+  if (metaBar) {
+    metaBar.innerHTML = `
+      <span class="audit-meta-item"><strong>0</strong> transactions analyzed</span>
+      <span class="audit-meta-divider">·</span>
+      <span class="audit-meta-item"><strong>₹0.00</strong> volume evaluated</span>
+      <span class="audit-meta-divider">·</span>
+      <span class="audit-meta-item"><strong>0.00%</strong> recovery yield</span>
+      <span class="audit-meta-divider">·</span>
+      <span class="audit-meta-item"><strong>0</strong> compliance breaches</span>
+    `;
+  }
+
+  // 3. Top Header Status Indicator
+  const topDot = document.getElementById("topHeaderStatusDot");
+  const topText = document.getElementById("topHeaderStatusText");
+  if (topDot) topDot.style.background = "var(--color-warning)";
+  if (topText) topText.innerText = "Simulation Standby (Click Run Demo)";
+
+  // 4. Overview Active Table
+  const activeTbody = document.getElementById("overviewActiveTableBody");
+  if (activeTbody) {
+    activeTbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align:center; padding:32px 16px; color:var(--text-muted);">
+          <div style="font-weight:600; color:var(--text-primary); margin-bottom:4px;">No active operations yet</div>
+          <div style="font-size:12px; margin-bottom:12px;">Click <strong>"Run Demo"</strong> to calculate and launch live portfolio recovery.</div>
+          <button class="btn btn-primary btn-sm" onclick="runDemoSimulation()">▶ Run Demo</button>
+        </td>
+      </tr>
+    `;
+  }
+
+  // 5. Portfolio Breakdown
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById(`risk-val-${i}`);
+    if (el) el.innerText = "—";
+  }
+  const rTot = document.getElementById("risk-val-total");
+  if (rTot) rTot.innerText = "—";
+
+  // 6. Benchmark View
+  const bmHero = document.getElementById("bm-hero-incremental");
+  const bmHeroSub = document.getElementById("bm-hero-sub");
+  const bmAi = document.getElementById("bm-ai-recovered");
+  const bmAiSub = document.getElementById("bm-ai-sub");
+  const bmBase = document.getElementById("bm-base-recovered");
+  const bmBaseSub = document.getElementById("bm-base-sub");
+  const bmLift = document.getElementById("bm-measured-lift");
+  const bmLiftSub = document.getElementById("bm-lift-sub");
+  const bmVio = document.getElementById("bm-violations");
+  const bmVioSub = document.getElementById("bm-violations-sub");
+  const bmBarAiLabel = document.getElementById("bm-bar-ai-label");
+  const bmBarAiFill = document.getElementById("bm-bar-ai-fill");
+  const bmBarBaseLabel = document.getElementById("bm-bar-base-label");
+  const bmBarBaseFill = document.getElementById("bm-bar-base-fill");
+
+  if (bmHero) bmHero.innerText = "—";
+  if (bmHeroSub) bmHeroSub.innerText = "Awaiting simulation · Click 'Run Demo' to compare AI recovery against fixed 24h retry";
+  if (bmAi) bmAi.innerText = "—";
+  if (bmAiSub) bmAiSub.innerText = "Awaiting simulation";
+  if (bmBase) bmBase.innerText = "—";
+  if (bmBaseSub) bmBaseSub.innerText = "Awaiting simulation";
+  if (bmLift) bmLift.innerText = "—";
+  if (bmLiftSub) bmLiftSub.innerText = "Awaiting simulation";
+  if (bmVio) bmVio.innerText = "—";
+  if (bmVioSub) bmVioSub.innerText = "Awaiting simulation";
+
+  if (bmBarAiLabel) bmBarAiLabel.innerText = "—";
+  if (bmBarAiFill) bmBarAiFill.style.width = "0%";
+  if (bmBarBaseLabel) bmBarBaseLabel.innerText = "—";
+  if (bmBarBaseFill) bmBarBaseFill.style.width = "0%";
+
+  // 7. Audit Explorer Table
+  renderInitialAuditEmptyState();
+
+  // 8. Chaos Sandbox Reset
+  resetChaosScenarios();
+
+  // 9. Close Modal if active
+  const modal = document.getElementById("auditModal");
+  if (modal) modal.classList.remove("active");
+
+  showToast("↺ Simulation state reset to standby.", "info");
+}
+
+function resetChaosScenarios() {
+  const panel = document.getElementById("chaosConsolePanel");
+  if (panel) panel.style.display = "none";
+  const pillCbs = document.getElementById("statusPillCbs");
+  const pillDispute = document.getElementById("statusPillDispute");
+  const pillTrai = document.getElementById("statusPillTrai");
+  if (pillCbs) { pillCbs.className = "badge-pill pill-neutral"; pillCbs.innerText = "READY"; }
+  if (pillDispute) { pillDispute.className = "badge-pill pill-neutral"; pillDispute.innerText = "READY"; }
+  if (pillTrai) { pillTrai.className = "badge-pill pill-neutral"; pillTrai.innerText = "READY"; }
+  const summary = document.getElementById("chaosHumanSummary");
+  if (summary) summary.innerHTML = "";
+  const timeline = document.getElementById("chaosConsoleTimeline");
+  if (timeline) timeline.innerHTML = "";
+}
+
 function getFallbackDemoSteps() {
   return [
     { from_state: "INIT", to_state: "DETECTED", event_type: "FAILURE_INGESTED", channel: "GATEWAY_WEBHOOK", statutory_rule_applied: "NONE", decision_rationale: "Ingested failure event: insufficient_funds on UPI AutoPay mandate." },
