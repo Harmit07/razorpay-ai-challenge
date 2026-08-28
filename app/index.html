@@ -3,27 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Razorpay Revenue Recovery — Enterprise Dashboard</title>
+  <title>Razorpay Revenue Recovery — Enterprise Platform</title>
+  <link rel="icon" type="image/png" href="/images.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=3.0">
 </head>
 <body>
 
   <div class="app-wrapper">
     
-    <!-- 1. Sidebar Navigation (Resizable & Collapsible) -->
+    <!-- 1. Left Sidebar Navigation -->
     <aside class="sidebar" id="appSidebar">
-      <div class="sidebar-resizer" id="sidebarResizer" title="Drag to resize sidebar width"></div>
       <div class="sidebar-header">
-        <div class="sidebar-logo">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-          </svg>
+        <div class="sidebar-branding">
+          <div class="sidebar-logo">
+            <img src="/images.png" alt="Recovery Agent" class="sidebar-logo-img">
+          </div>
+          <div class="sidebar-brand-text">
+            <span class="sidebar-brand-name">Recovery Agent</span>
+          </div>
         </div>
-        <span class="sidebar-brand-name">Razorpay</span>
-        <span class="sidebar-brand-badge">Recovery</span>
         <button class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Toggle compact sidebar" onclick="toggleSidebarCollapse()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="15 18 9 12 15 6"></polyline>
@@ -32,7 +33,7 @@
       </div>
 
       <nav class="sidebar-nav">
-        <a class="nav-item active" href="#overview" data-view="overview">
+        <a class="nav-item active" href="#overview" data-view="overview" title="Overview" onclick="switchView('overview'); return false;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="7" height="7"></rect>
             <rect x="14" y="3" width="7" height="7"></rect>
@@ -42,7 +43,7 @@
           <span>Overview</span>
         </a>
 
-        <a class="nav-item" href="#benchmark" data-view="benchmark">
+        <a class="nav-item" href="#benchmark" data-view="benchmark" title="Benchmark" onclick="switchView('benchmark'); return false;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="20" x2="18" y2="10"></line>
             <line x1="12" y1="20" x2="12" y2="4"></line>
@@ -51,7 +52,14 @@
           <span>Benchmark</span>
         </a>
 
-        <a class="nav-item" href="#transactions" data-view="transactions">
+        <a class="nav-item" href="#playground" data-view="playground" title="Diagnostic Sandbox" onclick="switchView('playground'); return false;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+          <span>Diagnostic Sandbox</span>
+        </a>
+
+        <a class="nav-item" href="#transactions" data-view="transactions" title="Audit Explorer" onclick="switchView('transactions'); return false;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             <line x1="8" y1="6" x2="21" y2="6"></line>
             <line x1="8" y1="12" x2="21" y2="12"></line>
@@ -63,7 +71,7 @@
           <span>Audit Explorer</span>
         </a>
 
-        <a class="nav-item" href="#rules" data-view="rules">
+        <a class="nav-item" href="#rules" data-view="rules" title="Compliance Rules" onclick="switchView('rules'); return false;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
           </svg>
@@ -71,18 +79,13 @@
         </a>
       </nav>
 
-      <div class="sidebar-footer">
-        <div class="engine-status-box">
-          <span class="status-dot-green"></span>
-          <span>Engine Online • v2.4</span>
-        </div>
-      </div>
+      <div class="sidebar-resizer" id="sidebarResizer" title="Drag to resize sidebar"></div>
     </aside>
 
-    <!-- 2. Main Content Container -->
+    <!-- 2. Main Application Container -->
     <div class="main-container">
       
-      <!-- Top Header (64px) -->
+      <!-- Top Sticky Header -->
       <header class="top-header">
         <div class="header-breadcrumb">
           <span class="breadcrumb-root">Razorpay</span>
@@ -90,46 +93,38 @@
           <span class="breadcrumb-active" id="breadcrumbCurrent">Overview</span>
         </div>
 
-        <div class="header-actions">
-          <div class="crypto-chain-pill" title="Cryptographically chained SHA-256 ledger">
-            <span class="status-dot-green"></span>
-            <span>🛡️ SHA-256 Ledger Verified (2,548 Blocks)</span>
+        <div class="header-right-group">
+          <div class="header-actions">
+            <button class="btn btn-secondary" onclick="exportFullAuditJson()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Export JSON
+            </button>
+
+            <button class="btn btn-secondary" onclick="exportFullAuditPdf()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+              Export Report (PDF)
+            </button>
+
+            <button class="btn btn-primary" id="btnRunSimulation" onclick="runDemoSimulation()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              Run Simulation
+            </button>
           </div>
-
-          <div class="simulation-pill">
-            <span class="status-dot-green"></span>
-            <span>14-Day Sim Complete</span>
-          </div>
-
-          <button class="btn btn-secondary" onclick="exportFullAuditJson()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            Export JSON
-          </button>
-
-          <button class="btn btn-secondary" onclick="exportFullAuditMd()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-            </svg>
-            Export Report
-          </button>
-
-          <button class="btn btn-primary" onclick="runDemoSimulation()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="5 3 19 12 5 21 5 3"></polygon>
-            </svg>
-            Run Demo
-          </button>
         </div>
       </header>
 
-      <!-- Page Content (Padding 32px) -->
+      <!-- Main Page Content Area -->
       <main class="page-content">
         
         <!-- ============================================================= -->
@@ -139,98 +134,282 @@
           
           <div class="page-header">
             <h1 class="page-title">Revenue Recovery Overview</h1>
-            <p class="page-subtitle">Real-time recovery performance across 750 payment failures (₹2.28 Crore portfolio volume).</p>
+            <p class="page-subtitle">Monitor at-risk portfolio volume, active recovery interventions, and financial outcomes.</p>
           </div>
 
-          <!-- 4 KPI Cards -->
+          <!-- 4 Core Financial KPI Cards (Strict Visual Hierarchy) -->
           <section class="kpi-grid">
+            <!-- 1. Volume at Risk -->
             <div class="kpi-card">
               <div class="kpi-label">Volume at Risk</div>
-              <div class="kpi-number" id="kpi-total-volume">₹2,27,71,364.25</div>
-              <div class="kpi-support">750 failed payment events</div>
+              <div class="kpi-value" id="kpi-total-volume">—</div>
+              <div class="kpi-subtext" id="kpi-total-volume-sub">Awaiting simulation</div>
             </div>
 
+            <!-- 2. Recovered Revenue (Primary Hero KPI) -->
             <div class="kpi-card">
               <div class="kpi-label">Recovered Revenue</div>
-              <div class="kpi-number" style="color: var(--color-primary);" id="kpi-ai-recovered">₹54,29,649.50</div>
-              <div class="kpi-support">
-                <span class="kpi-badge-lift">23.8% Yield</span>
-                <span>198 recovered transactions</span>
-              </div>
+              <div class="kpi-value kpi-val-primary" id="kpi-ai-recovered">—</div>
+              <div class="kpi-subtext" id="kpi-ai-recovered-sub">Awaiting simulation</div>
             </div>
 
+            <!-- 3. Incremental Lift vs Baseline -->
             <div class="kpi-card">
               <div class="kpi-label">Incremental Lift vs Baseline</div>
-              <div class="kpi-number" style="color: var(--color-primary);" id="kpi-incremental">+₹33,74,735.89</div>
-              <div class="kpi-support">
-                <span class="kpi-badge-lift">+164.2% Lift</span>
-                <span>over standard 24h retries</span>
-              </div>
+              <div class="kpi-value kpi-val-success" id="kpi-incremental">—</div>
+              <div class="kpi-subtext" id="kpi-incremental-sub">Awaiting simulation</div>
             </div>
 
+            <!-- 4. Statutory Compliance Breaches -->
             <div class="kpi-card">
               <div class="kpi-label">Statutory Compliance Breaches</div>
-              <div class="kpi-number" style="color: var(--color-success);" id="kpi-violations">0</div>
-              <div class="kpi-support">
-                <span class="kpi-badge-safe">100% Safe</span>
-                <span>599 baseline breaches avoided</span>
-              </div>
+              <div class="kpi-value kpi-val-success" id="kpi-violations">—</div>
+              <div class="kpi-subtext" id="kpi-violations-sub">Awaiting simulation</div>
             </div>
           </section>
 
-          <!-- Pipeline Overview -->
+          <!-- Recovery Pipeline Workflow (Unified Container) -->
           <section class="panel">
             <div class="panel-header">
               <div>
-                <h2 class="section-heading">Recovery Pipeline Workflow</h2>
-                <p class="section-sub">End-to-end operational stages from failure ingestion to compliant settlement.</p>
+                <h2 class="section-heading">Recovery Pipeline</h2>
+                <p class="section-sub">Follow payment failures from diagnosis to compliant recovery action.</p>
               </div>
             </div>
 
-            <div class="pipeline-grid">
-              <div class="pipeline-card">
-                <div class="pipeline-step-num">1</div>
-                <h3>Root-Cause Diagnosis</h3>
-                <p>Every transaction failure is classified across 13 root causes (low balance, bank outage, authentication drop, AFA limit breach) to determine true recovery potential.</p>
-              </div>
-
-              <div class="pipeline-card">
-                <div class="pipeline-step-num">2</div>
-                <h3>Compliant Channels & Timing</h3>
-                <p>Schedules mandated 24h pre-debit notices, 1-click WhatsApp payment links, and salary-cycle retries strictly within TRAI quiet hours (08:00–20:00 IST).</p>
-              </div>
-
-              <div class="pipeline-card">
-                <div class="pipeline-step-num">3</div>
-                <h3>Automated Safety Stopping Rules</h3>
-                <p>Dunning touches instantly cease on customer mandate cancellations, active disputes, or customer payment promises (PTP) to protect trust and compliance.</p>
-              </div>
-            </div>
-          </section>
-
-          <!-- Interactive Merchant ROI & Revenue Calculator -->
-          <section class="panel">
-            <div class="panel-header">
-              <div>
-                <h2 class="section-heading">Merchant Revenue Recovery Calculator</h2>
-                <p class="section-sub">Estimate projected annual revenue recovery and compliance risk elimination for your merchant volume.</p>
-              </div>
-              <div class="badge-pill pill-info">
-                <span class="badge-dot"></span>Interactive Model
-              </div>
-            </div>
-
-            <div class="calculator-grid">
-              
-              <!-- Inputs Column -->
-              <div class="calc-inputs-card">
-                <div class="calc-field">
-                  <div class="calc-label-row">
-                    <label class="calc-label" for="calcGmvSlider">Monthly Transaction Volume (GMV)</label>
-                    <span class="calc-val-badge" id="calcGmvVal">₹25.0 Crore</span>
+            <div class="workflow-unified-container">
+              <div class="workflow-grid">
+                
+                <!-- Stage 01: Ingest & Diagnose -->
+                <div class="workflow-col">
+                  <div class="workflow-stage-header">
+                    <span class="workflow-step-num">01</span>
+                    <div class="workflow-title-wrap">
+                      <div class="workflow-col-title">
+                        <svg class="workflow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="11" cy="11" r="8"></circle>
+                          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        Ingest & Diagnose
+                      </div>
+                      <div class="workflow-col-sub">Identify root cause from decline signal.</div>
+                    </div>
                   </div>
-                  <input type="range" id="calcGmvSlider" class="calc-slider" min="1" max="100" step="1" value="25" oninput="updateRoiCalculation()">
-                  <div class="calc-range-labels">
+
+                  <div class="workflow-detail-box">
+                    <div class="workflow-data-row">
+                      <span class="wf-label">Failure Signal</span>
+                      <span class="wf-val code-val" id="wfFailureSignal">ERR_INSUFFICIENT_FUNDS</span>
+                    </div>
+                    <div class="workflow-data-row">
+                      <span class="wf-label">Diagnosed Cause</span>
+                      <span class="wf-val" id="wfDiagnosedCause">Liquidity Shortfall</span>
+                    </div>
+                    <div class="workflow-data-row">
+                      <span class="wf-label">Recovery Probability</span>
+                      <span class="wf-val" id="wfRecoveryProb" style="color:var(--color-primary); font-weight:600;">68.4%</span>
+                    </div>
+                    <div class="workflow-data-row">
+                      <span class="wf-label">Classification</span>
+                      <span class="wf-val code-val" id="wfClassification">Bucket 1 · Liquidity</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Connector 1 -> 2 -->
+                <div class="workflow-arrow-connector">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </div>
+
+                <!-- Stage 02: Decision & Policy -->
+                <div class="workflow-col">
+                  <div class="workflow-stage-header">
+                    <span class="workflow-step-num">02</span>
+                    <div class="workflow-title-wrap">
+                      <div class="workflow-col-title">
+                        <svg class="workflow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="6" y1="3" x2="6" y2="15"></line>
+                          <circle cx="18" cy="6" r="3"></circle>
+                          <circle cx="6" cy="18" r="3"></circle>
+                          <path d="M18 9a9 9 0 0 1-9 9"></path>
+                        </svg>
+                        Decision & Policy
+                      </div>
+                      <div class="workflow-col-sub">Select optimal action bounded by compliance.</div>
+                    </div>
+                  </div>
+
+                  <div class="workflow-detail-box">
+                    <div class="workflow-data-row">
+                      <span class="wf-label">Selected Action</span>
+                      <span class="wf-val wf-action-val" id="wfSelectedAction">Payday-Window Retry</span>
+                    </div>
+                    <div class="workflow-data-row">
+                      <span class="wf-label">Net Expected Value</span>
+                      <span class="wf-val wf-ev-val" id="wfNetEv">+₹4,099.18</span>
+                    </div>
+                    <div class="workflow-data-row">
+                      <span class="wf-label">RBI e-Mandate Guard</span>
+                      <span class="wf-val wf-success-tag" id="wfRbiGuard"><span class="badge-dot"></span>24h Advance Notice</span>
+                    </div>
+                    <div class="workflow-data-row">
+                      <span class="wf-label">TRAI Quiet Hours</span>
+                      <span class="wf-val wf-success-tag" id="wfTraiGuard"><span class="badge-dot"></span>Permitted Window (10:15)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Connector 2 -> 3 -->
+                <div class="workflow-arrow-connector">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </div>
+
+                <!-- Stage 03: Execute & Settle -->
+                <div class="workflow-col">
+                  <div class="workflow-stage-header">
+                    <span class="workflow-step-num">03</span>
+                    <div class="workflow-title-wrap">
+                      <div class="workflow-col-title">
+                        <svg class="workflow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                        Execute & Settle
+                      </div>
+                      <div class="workflow-col-sub">Dispatch channel & record audit trail.</div>
+                    </div>
+                  </div>
+
+                  <div class="workflow-detail-box">
+                    <div class="workflow-data-row">
+                      <span class="wf-label">Execution Timing</span>
+                      <span class="wf-val" id="wfExecTiming">Day T+2 · Salary Date</span>
+                    </div>
+                    <div class="workflow-data-row">
+                      <span class="wf-label">Channel Rail</span>
+                      <span class="wf-val" id="wfChannelRail">UPI AutoPay Mandate</span>
+                    </div>
+                    <div class="workflow-data-row">
+                      <span class="wf-label">Settlement Status</span>
+                      <span class="wf-val wf-success-tag" id="wfSettlementStatus"><span class="badge-dot"></span>Recovered (₹4,999.00)</span>
+                    </div>
+                    <div class="workflow-data-row">
+                      <span class="wf-label">Audit Proof</span>
+                      <span class="wf-val code-val" id="wfAuditProof">SHA-256 Block #2,548</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </section>
+
+          <!-- Active Recovery & Risk Segmentation (Compact 2-Column Grid) -->
+          <div style="display:grid; grid-template-columns: 1.4fr 1fr; gap:20px; margin-bottom:24px;">
+            
+            <!-- Left: Active Recovery Operations -->
+            <section class="panel" style="margin-bottom:0;">
+              <div class="panel-header">
+                <div>
+                  <h3 class="section-heading">Active Recovery Operations</h3>
+                  <p class="section-sub">Autonomous interventions currently executing or scheduled.</p>
+                </div>
+                <button class="btn btn-tertiary btn-sm" onclick="switchView('transactions')">
+                  View all records →
+                </button>
+              </div>
+
+              <div class="table-wrapper">
+                <table class="enterprise-table">
+                  <thead>
+                    <tr>
+                      <th>Transaction</th>
+                      <th class="col-numeric">Amount</th>
+                      <th>Root Cause</th>
+                      <th>Action</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="overviewActiveTableBody">
+                    <tr>
+                      <td colspan="5" style="text-align:center; padding:32px 16px; color:var(--text-muted);">
+                        <div style="font-weight:600; color:var(--text-primary); margin-bottom:4px;">No active operations yet</div>
+                        <div style="font-size:12px; margin-bottom:12px;">Click <strong>"Run Demo"</strong> to calculate and launch live portfolio recovery.</div>
+                        <button class="btn btn-primary btn-sm" onclick="runDemoSimulation()">▶ Run Demo</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <!-- Right: At-Risk Portfolio Breakdown -->
+            <section class="panel" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:space-between;">
+              <div>
+                <div class="panel-header">
+                  <div>
+                    <h3 class="section-heading">At-Risk Portfolio Breakdown</h3>
+                    <p class="section-sub">Exposure across failure categories.</p>
+                  </div>
+                  <button class="btn btn-tertiary btn-sm" onclick="switchView('rules')">
+                    Rules →
+                  </button>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:12px; padding: 4px 0;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+                    <span style="color:var(--text-secondary);">Insufficient Funds</span>
+                    <strong style="font-family:var(--font-mono); color:var(--text-primary);" id="risk-val-1">—</strong>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+                    <span style="color:var(--text-secondary);">Core Banking Outage (503)</span>
+                    <strong style="font-family:var(--font-mono); color:var(--text-primary);" id="risk-val-2">—</strong>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+                    <span style="color:var(--text-secondary);">Mandate / AFA Limit Breaches</span>
+                    <strong style="font-family:var(--font-mono); color:var(--text-primary);" id="risk-val-3">—</strong>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+                    <span style="color:var(--text-secondary);">Disputes & Inactive Accounts</span>
+                    <strong style="font-family:var(--font-mono); color:var(--text-primary);" id="risk-val-4">—</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div style="padding-top: 14px; border-top: 1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--text-secondary);">
+                <span>Total Portfolio Evaluated</span>
+                <strong style="font-family:var(--font-mono); color:var(--text-primary);" id="risk-val-total">—</strong>
+              </div>
+            </section>
+
+          </div>
+
+          <!-- Revenue Recovery Calculator -->
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="section-heading">Revenue Recovery Calculator</h2>
+                <p class="section-sub">Estimate recoverable revenue using your transaction profile.</p>
+              </div>
+            </div>
+
+            <div class="calc-container">
+              
+              <!-- Inputs Column (Left) -->
+              <div class="calc-inputs-panel">
+                <div class="calc-col-header">INPUTS</div>
+
+                <div class="calc-field">
+                  <div class="calc-field-header">
+                    <label class="calc-label" for="calcGmvSlider">Monthly Transaction Volume (GMV)</label>
+                    <span class="calc-val-display" id="calcGmvVal">₹25.0 Crore</span>
+                  </div>
+                  <input type="range" id="calcGmvSlider" class="calc-range-slider" min="1" max="100" step="1" value="25" oninput="updateRoiCalculation()">
+                  <div class="calc-scale-labels">
                     <span>₹1 Cr</span>
                     <span>₹50 Cr</span>
                     <span>₹100 Cr</span>
@@ -238,12 +417,12 @@
                 </div>
 
                 <div class="calc-field">
-                  <div class="calc-label-row">
+                  <div class="calc-field-header">
                     <label class="calc-label" for="calcFailureSlider">Payment Failure Rate</label>
-                    <span class="calc-val-badge" id="calcFailureVal">12.0%</span>
+                    <span class="calc-val-display" id="calcFailureVal">12.0%</span>
                   </div>
-                  <input type="range" id="calcFailureSlider" class="calc-slider" min="2" max="30" step="0.5" value="12" oninput="updateRoiCalculation()">
-                  <div class="calc-range-labels">
+                  <input type="range" id="calcFailureSlider" class="calc-range-slider" min="2" max="30" step="0.5" value="12" oninput="updateRoiCalculation()">
+                  <div class="calc-scale-labels">
                     <span>2% (Low Churn)</span>
                     <span>15% (Typical)</span>
                     <span>30% (High Churn)</span>
@@ -251,320 +430,754 @@
                 </div>
 
                 <div class="calc-field">
-                  <div class="calc-label-row">
+                  <div class="calc-field-header">
                     <label class="calc-label" for="calcTicketSelect">Business Category & Ticket Size</label>
                   </div>
-                  <select id="calcTicketSelect" class="input-select" style="width:100%;" onchange="updateRoiCalculation()">
-                    <option value="2500">Consumer Subscription / OTT (₹2,500 ticket)</option>
+                  <select id="calcTicketSelect" class="pg-select calc-select" onchange="updateRoiCalculation()">
+                    <option value="2500">Consumer Subscriptions (₹2,500 ticket)</option>
                     <option value="15000" selected>SaaS & Professional Services (₹15,000 ticket)</option>
-                    <option value="65000">Insurance & Mutual Funds (₹65,000 ticket - AFA Exempt)</option>
+                    <option value="65000">Insurance & Mutual Funds (₹65,000 ticket)</option>
                     <option value="150000">B2B Commercial Invoicing (₹1,50,000 ticket)</option>
                   </select>
                 </div>
               </div>
 
-              <!-- Output Projection Column -->
-              <div class="calc-results-card">
-                <div class="calc-hero-result">
-                  <div class="calc-hero-label">Projected Annual Recovered Revenue</div>
-                  <div class="calc-hero-number" id="calcAnnualRecovered">₹8.57 Crore / Year</div>
-                  <div class="calc-hero-sub" id="calcMonthlyRecovered">+₹71.40 Lakhs / month (23.8% Recovery Yield)</div>
+              <!-- Projected Financial Output Column (Right) -->
+              <div class="calc-outputs-panel">
+                <div class="calc-col-header">PROJECTED FINANCIAL IMPACT</div>
+
+                <div class="calc-hero-stat">
+                  <div class="calc-hero-label">Projected Annual Recovery</div>
+                  <div class="calc-hero-val" id="calcAnnualRecovered">₹8.57 Crore / Year</div>
+                  <div class="calc-hero-sub" id="calcMonthlyRecovered">
+                    +₹71.40 Lakhs / month (23.8% Recovery Yield)
+                  </div>
                 </div>
 
-                <div class="calc-metrics-mini-grid">
-                  <div class="calc-mini-box">
-                    <div class="calc-mini-label">Monthly Volume at Risk</div>
-                    <div class="calc-mini-val" id="calcMonthlyAtRisk">₹3.00 Crore</div>
+                <div class="calc-submetrics-grid">
+                  <div class="calc-submetric-item">
+                    <span class="calc-submetric-label">Monthly Volume at Risk</span>
+                    <span class="calc-submetric-val" id="calcMonthlyAtRisk">₹3.00 Crore</span>
                   </div>
-                  <div class="calc-mini-box">
-                    <div class="calc-mini-label">Incremental Lift vs Baseline</div>
-                    <div class="calc-mini-val text-blue" id="calcMonthlyLift">+₹44.34 L / mo</div>
+                  <div class="calc-submetric-item">
+                    <span class="calc-submetric-label">Incremental Lift vs Baseline</span>
+                    <span class="calc-submetric-val lift-val" id="calcMonthlyLift">+₹44.34 L / mo</span>
                   </div>
-                  <div class="calc-mini-box">
-                    <div class="calc-mini-label">Regulatory Breaches Avoided</div>
-                    <div class="calc-mini-val text-green" id="calcViolationsAvoided">~7,180 / Year</div>
-                  </div>
-                  <div class="calc-mini-box">
-                    <div class="calc-mini-label">Estimated Churn Reduction</div>
-                    <div class="calc-mini-val text-green">~3.8% Churn Saved</div>
+                  <div class="calc-submetric-item">
+                    <span class="calc-submetric-label">Breaches Avoided</span>
+                    <span class="calc-submetric-val safe-val" id="calcViolationsAvoided">~7,180 / Year</span>
                   </div>
                 </div>
+
+                <details class="calc-accordion">
+                  <summary>How is this calculated?</summary>
+                  <p class="calc-accordion-text">
+                    Projected recovery is modeled on benchmark calibrated yield (23.84% Smart AI vs 9.02% 24h baseline retry) and statutory RBI AFA caps and TRAI quiet-hour constraints.
+                  </p>
+                </details>
               </div>
 
             </div>
           </section>
 
-          <!-- Live Chaos & Fault Injection Sandbox -->
+          <!-- Fault Injection Sandbox -->
           <section class="panel">
             <div class="panel-header">
               <div>
-                <h2 class="section-heading">Live Chaos & Fault Injection Sandbox</h2>
-                <p class="section-sub">Inject real-time production failure scenarios into the engine and verify instant policy adaptations & compliance refusals.</p>
-              </div>
-              <div class="badge-pill pill-warning">
-                <span class="badge-dot"></span>Fault Injection Active
+                <h2 class="section-heading">Fault Injection Sandbox</h2>
+                <p class="section-sub">Test how the recovery agent responds to failures, disputes, and compliance constraints.</p>
               </div>
             </div>
 
-            <div class="chaos-sandbox-grid">
-              <div class="chaos-action-card" onclick="triggerChaosScenario('BANK_OUTAGE_503')">
-                <div class="chaos-card-icon">⚡</div>
-                <div class="chaos-card-body">
-                  <div class="chaos-card-title">CBS Bank Outage (HDFC 503)</div>
-                  <div class="chaos-card-desc">Simulates core banking 503 service failure. Blocks blind auto-debit retries; switches to 48h cooling & WhatsApp UPI intent.</div>
-                  <div class="chaos-card-ev"><span class="ev-tag">+₹6,374.35 EV</span> • Channel Switch</div>
+            <div class="chaos-grid">
+              
+              <!-- Scenario 1: CBS Bank Outage -->
+              <div class="chaos-scenario-card" id="chaosCardCbs">
+                <div class="chaos-card-header">
+                  <div class="chaos-title-wrap">
+                    <svg class="chaos-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="3" y1="21" x2="21" y2="21"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                      <polyline points="5 6 12 3 19 6"></polyline>
+                      <line x1="4" y1="10" x2="4" y2="21"></line>
+                      <line x1="20" y1="10" x2="20" y2="21"></line>
+                      <line x1="8" y1="14" x2="8" y2="17"></line>
+                      <line x1="12" y1="14" x2="12" y2="17"></line>
+                      <line x1="16" y1="14" x2="16" y2="17"></line>
+                    </svg>
+                    <span class="chaos-title">CBS Bank Outage</span>
+                  </div>
+                  <span class="badge-pill pill-neutral" id="statusPillCbs">READY</span>
                 </div>
-                <button class="btn btn-sm btn-secondary" style="width:100%;">Inject Outage</button>
+
+                <div class="chaos-steps-block">
+                  <div class="chaos-step-row">
+                    <span class="chaos-step-label">Trigger</span>
+                    <span class="chaos-step-desc">Core banking CBS 503 timeout on auto-debit rail</span>
+                  </div>
+                  <div class="chaos-step-row">
+                    <span class="chaos-step-label">Response</span>
+                    <span class="chaos-step-desc">Switch channel to 1-click WhatsApp UPI intent</span>
+                  </div>
+                  <div class="chaos-step-row">
+                    <span class="chaos-step-label">Result</span>
+                    <span class="chaos-step-desc outcome-success">Alternate recovery safe (+₹6,374 Net EV)</span>
+                  </div>
+                </div>
+
+                <div class="chaos-card-footer">
+                  <button class="btn btn-secondary btn-sm" onclick="triggerChaosScenario('BANK_OUTAGE_503')">
+                    Inject Scenario
+                  </button>
+                </div>
               </div>
 
-              <div class="chaos-action-card" onclick="triggerChaosScenario('DISPUTE_CPA_2019')">
-                <div class="chaos-card-icon">🛑</div>
-                <div class="chaos-card-body">
-                  <div class="chaos-card-title">Active Fraud Dispute (CPA 2019)</div>
-                  <div class="chaos-card-desc">Simulates customer chargeback filed with issuing bank. Enforces Guard 1 dispute lock and terminates dunning.</div>
-                  <div class="chaos-card-ev"><span class="ev-tag pill-danger">₹0.00 EV</span> • Refusal Enforced</div>
+              <!-- Scenario 2: Active Fraud Dispute -->
+              <div class="chaos-scenario-card" id="chaosCardDispute">
+                <div class="chaos-card-header">
+                  <div class="chaos-title-wrap">
+                    <svg class="chaos-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                      <line x1="12" y1="8" x2="12" y2="12"></line>
+                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <span class="chaos-title">Active Fraud Dispute</span>
+                  </div>
+                  <span class="badge-pill pill-neutral" id="statusPillDispute">READY</span>
                 </div>
-                <button class="btn btn-sm btn-secondary" style="width:100%;">Inject Dispute</button>
+
+                <div class="chaos-steps-block">
+                  <div class="chaos-step-row">
+                    <span class="chaos-step-label">Trigger</span>
+                    <span class="chaos-step-desc">Customer disputes charge with bank as unauthorized</span>
+                  </div>
+                  <div class="chaos-step-row">
+                    <span class="chaos-step-label">Response</span>
+                    <span class="chaos-step-desc">Instant quarantine & freeze retries (CPA 2019)</span>
+                  </div>
+                  <div class="chaos-step-row">
+                    <span class="chaos-step-label">Result</span>
+                    <span class="chaos-step-desc outcome-danger">Automated recovery stopped (0 Violations)</span>
+                  </div>
+                </div>
+
+                <div class="chaos-card-footer">
+                  <button class="btn btn-secondary btn-sm" onclick="triggerChaosScenario('DISPUTE_CPA_2019')">
+                    Inject Scenario
+                  </button>
+                </div>
               </div>
 
-              <div class="chaos-action-card" onclick="triggerChaosScenario('TRAI_NIGHT_HOURS')">
-                <div class="chaos-card-icon">🌙</div>
-                <div class="chaos-card-body">
-                  <div class="chaos-card-title">TRAI Night Hours (23:30 IST)</div>
-                  <div class="chaos-card-desc">Simulates failure occurring at 11:30 PM. Prohibits immediate UCC outreach; queues message for 08:30 AM release.</div>
-                  <div class="chaos-card-ev"><span class="ev-tag">+₹2,868.53 EV</span> • 9h Queue Hold</div>
+              <!-- Scenario 3: TRAI Night Hours -->
+              <div class="chaos-scenario-card" id="chaosCardTrai">
+                <div class="chaos-card-header">
+                  <div class="chaos-title-wrap">
+                    <svg class="chaos-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span class="chaos-title">TRAI Night Hours</span>
+                  </div>
+                  <span class="badge-pill pill-neutral" id="statusPillTrai">READY</span>
                 </div>
-                <button class="btn btn-sm btn-secondary" style="width:100%;">Inject Night Txn</button>
+
+                <div class="chaos-steps-block">
+                  <div class="chaos-step-row">
+                    <span class="chaos-step-label">Trigger</span>
+                    <span class="chaos-step-desc">Degradation occurs during quiet hours (23:30 IST)</span>
+                  </div>
+                  <div class="chaos-step-row">
+                    <span class="chaos-step-label">Response</span>
+                    <span class="chaos-step-desc">Suppress outreach & queue notification for 08:30 IST</span>
+                  </div>
+                  <div class="chaos-step-row">
+                    <span class="chaos-step-label">Result</span>
+                    <span class="chaos-step-desc outcome-warning">Customer contact deferred compliantly</span>
+                  </div>
+                </div>
+
+                <div class="chaos-card-footer">
+                  <button class="btn btn-secondary btn-sm" onclick="triggerChaosScenario('TRAI_NIGHT_HOURS')">
+                    Inject Scenario
+                  </button>
+                </div>
               </div>
+
             </div>
 
-            <!-- Chaos Real-Time Execution Console -->
-            <div id="chaosConsolePanel" class="chaos-console-panel" style="display: none;">
-              <div class="chaos-console-header">
-                <div class="chaos-console-title" id="chaosConsoleTitle">⚡ Scenario Execution Trace</div>
-                <div class="chaos-console-status" id="chaosConsoleStatus">RUNNING</div>
-              </div>
-              <div class="chaos-console-timeline" id="chaosConsoleTimeline"></div>
-            </div>
-          </section>
-
-          <!-- Quick Navigation Actions -->
-          <section class="panel">
-            <div class="panel-header">
-              <div>
-                <h2 class="section-heading">Explore Portfolio Modules</h2>
-                <p class="section-sub">Navigate to detailed benchmark statistics, transaction audit records, or compliance rules.</p>
-              </div>
-            </div>
-
-            <div class="pipeline-grid">
-              <div class="pipeline-card" style="cursor:pointer;" onclick="switchView('benchmark')">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <span class="badge-pill pill-info"><span class="badge-dot"></span>Analytics</span>
-                  <span style="font-size:12px; color:var(--color-primary); font-weight:500;">View →</span>
+            <!-- Chaos Execution Result Panel (Clean Fintech Design) -->
+            <div id="chaosConsolePanel" class="chaos-result-panel" style="display:none;">
+              <div class="chaos-result-header">
+                <div>
+                  <div class="chaos-result-meta">EXECUTION RESULT</div>
+                  <div class="chaos-result-title" id="chaosConsoleTitle">Scenario Execution Trace</div>
                 </div>
-                <h3>Comparative Benchmark</h3>
-                <p>Inspect the head-to-head performance lift against the naive 24h fixed retry strategy across revenue and compliance metrics.</p>
+                <span class="badge-pill pill-neutral" id="chaosConsoleStatus">READY</span>
               </div>
 
-              <div class="pipeline-card" style="cursor:pointer;" onclick="switchView('transactions')">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <span class="badge-pill pill-info"><span class="badge-dot"></span>Data Explorer</span>
-                  <span style="font-size:12px; color:var(--color-primary); font-weight:500;">View →</span>
-                </div>
-                <h3>Transaction & Audit Explorer</h3>
-                <p>Search all 750 transactions with live filters, edge-case tags, and step-by-step regulatory audit drawer inspection.</p>
+              <div class="chaos-human-summary" id="chaosHumanSummary">
+                <!-- Human summary injected dynamically -->
               </div>
 
-              <div class="pipeline-card" style="cursor:pointer;" onclick="switchView('rules')">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <span class="badge-pill pill-success"><span class="badge-dot"></span>Statutory</span>
-                  <span style="font-size:12px; color:var(--color-primary); font-weight:500;">View →</span>
-                </div>
-                <h3>Compliance Rules & Safeguards</h3>
-                <p>Review the hard-coded Indian regulatory frameworks (RBI 2026 E-Mandate, TRAI Quiet Hours, CPA 2019, DPDP 2023).</p>
-              </div>
+              <details class="chaos-log-details">
+                <summary>View technical audit trace</summary>
+                <div id="chaosConsoleTimeline" class="chaos-console-timeline"></div>
+              </details>
             </div>
           </section>
 
         </div>
 
         <!-- ============================================================= -->
-        <!-- VIEW 2: BENCHMARK -->
+        <!-- VIEW 2: RECOVERY PERFORMANCE (BENCHMARK) -->
         <!-- ============================================================= -->
         <div class="view-section" id="view-benchmark">
           
           <div class="page-header">
-            <h1 class="page-title">Comparative Benchmark Analysis</h1>
-            <p class="page-subtitle">Head-to-head comparison of Smart Recovery Agent vs. Standard 24-Hour Fixed Retry on the same 750 transactions.</p>
-          </div>
-
-          <div class="benchmark-row">
-            <!-- Recovered Revenue -->
-            <div class="comp-card">
-              <div class="comp-header">
-                <span class="comp-title">Total Revenue Recovered</span>
-                <span class="comp-lift-tag">+₹33.75 Lakhs (+164.2% Lift)</span>
-              </div>
-              <div class="bar-group">
-                <div class="bar-row">
-                  <span class="bar-label">Smart Agent</span>
-                  <div class="bar-track">
-                    <div class="bar-fill fill-primary" style="width: 100%;">₹54.30 L (23.8%)</div>
-                  </div>
-                </div>
-                <div class="bar-row">
-                  <span class="bar-label">Baseline</span>
-                  <div class="bar-track">
-                    <div class="bar-fill fill-muted" style="width: 37.8%;">₹20.55 L (9.0%)</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Compliance Violations -->
-            <div class="comp-card">
-              <div class="comp-header">
-                <span class="comp-title">Statutory Violations Committed</span>
-                <span class="comp-lift-tag">100% Risk Elimination</span>
-              </div>
-              <div class="bar-group">
-                <div class="bar-row">
-                  <span class="bar-label">Smart Agent</span>
-                  <div class="bar-track">
-                    <div class="bar-fill fill-primary" style="width: 6%;">0 Breaches</div>
-                  </div>
-                </div>
-                <div class="bar-row">
-                  <span class="bar-label">Baseline</span>
-                  <div class="bar-track">
-                    <div class="bar-fill fill-error" style="width: 100%;">599 Breaches (High Risk)</div>
-                  </div>
-                </div>
-              </div>
+            <h1 class="page-title">Recovery Performance</h1>
+            <p class="page-subtitle">Compare intelligent recovery against the standard 24-hour retry baseline.</p>
+            <div class="audit-meta-bar">
+              <span class="audit-meta-item"><strong>750</strong> evaluation transactions</span>
+              <span class="audit-meta-divider">·</span>
+              <span class="audit-meta-item">14-day observation horizon</span>
+              <span class="audit-meta-divider">·</span>
+              <span class="audit-meta-item">Evaluated against fixed 24h retry</span>
+              <span class="audit-meta-divider">·</span>
+              <span class="audit-meta-item" style="color:var(--color-success-text);">0 compliance violations</span>
             </div>
           </div>
 
-          <!-- Executive Summary Table -->
-          <section class="panel">
+          <!-- Primary Hero: Incremental Revenue Focal Point -->
+          <div class="benchmark-hero-card">
+            <div class="benchmark-hero-label">INCREMENTAL REVENUE RECOVERED</div>
+            <div class="benchmark-hero-val" id="bm-hero-incremental">—</div>
+            <div class="benchmark-hero-sub" id="bm-hero-sub">Awaiting simulation · Click 'Run Demo' to compare AI recovery against fixed 24h retry</div>
+          </div>
+
+          <!-- Top Performance Summary (4-Column Comparison) -->
+          <div class="benchmark-summary-grid">
+            <div class="benchmark-stat-card highlight-ai">
+              <div class="benchmark-card-meta">SMART RECOVERY AGENT</div>
+              <div class="benchmark-card-val" style="color:var(--color-primary);" id="bm-ai-recovered">—</div>
+              <div class="benchmark-card-sub" id="bm-ai-sub">Awaiting simulation</div>
+            </div>
+
+            <div class="benchmark-stat-card">
+              <div class="benchmark-card-meta">24H RETRY BASELINE</div>
+              <div class="benchmark-card-val" id="bm-base-recovered">—</div>
+              <div class="benchmark-card-sub" id="bm-base-sub">Awaiting simulation</div>
+            </div>
+
+            <div class="benchmark-stat-card highlight-lift">
+              <div class="benchmark-card-meta">MEASURED LIFT</div>
+              <div class="benchmark-card-val" style="color:var(--color-success-text);" id="bm-measured-lift">—</div>
+              <div class="benchmark-card-sub" id="bm-lift-sub">Awaiting simulation</div>
+            </div>
+
+            <div class="benchmark-stat-card highlight-safe">
+              <div class="benchmark-card-meta">COMPLIANCE RISK</div>
+              <div class="benchmark-card-val" style="color:var(--color-success-text);" id="bm-violations">—</div>
+              <div class="benchmark-card-sub" id="bm-violations-sub">Awaiting simulation</div>
+            </div>
+          </div>
+
+          <!-- Visual Bar Progression Comparison -->
+          <section class="panel" style="margin-bottom:20px;">
             <div class="panel-header">
               <div>
-                <h2 class="section-heading">Detailed Comparative Metric Breakdown</h2>
-                <p class="section-sub">Measured financial outcomes and operational efficiency across the 14-day horizon.</p>
+                <h3 class="section-heading">Revenue Recovery Comparison</h3>
+                <p class="section-sub">Direct comparison of total monetary value recovered across 750 evaluated payment failures.</p>
+              </div>
+              <div class="benchmark-legend">
+                <span class="legend-item"><span class="legend-dot dot-ai"></span>Smart Recovery Agent</span>
+                <span class="legend-item"><span class="legend-dot dot-baseline"></span>24h Retry Baseline</span>
+              </div>
+            </div>
+
+            <div class="benchmark-bar-comparison">
+              <div class="bar-comparison-row">
+                <div class="bar-row-label">
+                  <strong>Smart Recovery Agent</strong>
+                  <span class="mono" id="bm-bar-ai-label">—</span>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill bar-fill-ai" id="bm-bar-ai-fill" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <div class="bar-comparison-row">
+                <div class="bar-row-label">
+                  <span>Standard 24-Hour Baseline</span>
+                  <span class="mono" id="bm-bar-base-label">—</span>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill bar-fill-baseline" id="bm-bar-base-fill" style="width: 0%;"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Detailed Metric Breakdown Table -->
+          <section class="panel" style="margin-bottom:20px;">
+            <div class="panel-header">
+              <div>
+                <h3 class="section-heading">Executive Performance Summary</h3>
+                <p class="section-sub">Measured financial outcomes, yield rates, and statutory risk reduction.</p>
               </div>
             </div>
 
             <div class="table-wrapper">
-              <table class="fintech-table">
+              <table class="enterprise-table">
                 <thead>
                   <tr>
-                    <th>Metric</th>
-                    <th>Standard 24h Baseline</th>
-                    <th>Smart Recovery Agent</th>
-                    <th>Measured Advantage</th>
+                    <th style="width:28%;">Metric</th>
+                    <th style="width:24%;">Standard 24h Baseline</th>
+                    <th style="width:24%;">Smart Recovery Agent</th>
+                    <th style="width:24%;">Measured Advantage</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
                     <td><strong>Total Money Recovered</strong></td>
-                    <td class="cell-amount">₹20,54,913.61</td>
-                    <td class="cell-amount" style="color:var(--color-primary);">₹54,29,649.50</td>
-                    <td><span class="badge-pill pill-success">+₹33,74,735.89 (+164.2% Lift)</span></td>
+                    <td style="font-family:var(--font-mono); font-weight:500;">₹20,54,913.61</td>
+                    <td style="font-family:var(--font-mono); font-weight:600; color:var(--color-primary);">₹54,29,649.50</td>
+                    <td><span class="badge-pill pill-success"><span class="badge-dot"></span>+₹33,74,735.89 (+164.2% Lift)</span></td>
                   </tr>
                   <tr>
                     <td><strong>Recovery Yield Rate</strong></td>
                     <td>9.02%</td>
-                    <td style="color:var(--color-primary); font-weight:600;">23.84%</td>
-                    <td><span class="badge-pill pill-success">+14.82% Absolute Lift</span></td>
+                    <td style="font-weight:600; color:var(--color-primary);">23.84%</td>
+                    <td><span class="badge-pill pill-success"><span class="badge-dot"></span>+14.82% Absolute Lift</span></td>
                   </tr>
                   <tr>
                     <td><strong>Successful Transactions</strong></td>
                     <td>51 recovered</td>
                     <td style="font-weight:600;">198 recovered</td>
-                    <td><span class="badge-pill pill-success">+147 Transactions</span></td>
+                    <td><span class="badge-pill pill-success"><span class="badge-dot"></span>+147 Transactions</span></td>
                   </tr>
                   <tr>
                     <td><strong>Statutory Compliance Violations</strong></td>
-                    <td style="color:var(--color-error); font-weight:600;">599 Violations ⚠️</td>
-                    <td style="color:var(--color-success); font-weight:600;">0 Violations 🛡️</td>
-                    <td><span class="badge-pill pill-success">100% Risk Elimination</span></td>
+                    <td style="color:var(--color-error); font-weight:500;">599 Violations</td>
+                    <td style="color:var(--color-success); font-weight:600;">0 Violations</td>
+                    <td><span class="badge-pill pill-success"><span class="badge-dot"></span>100% Risk Elimination</span></td>
                   </tr>
                   <tr>
                     <td><strong>Wasted Blind API Retries</strong></td>
                     <td>750 blind retries</td>
                     <td style="color:var(--color-success); font-weight:600;">0 blind retries</td>
-                    <td><span class="badge-pill pill-info">Targeted Interventions</span></td>
+                    <td><span class="badge-pill pill-info"><span class="badge-dot"></span>Targeted Interventions</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Average Customer Friction Penalty</strong></td>
+                    <td>₹14.20 / txn</td>
+                    <td style="color:var(--color-success); font-weight:600;">₹2.10 / txn</td>
+                    <td><span class="badge-pill pill-success"><span class="badge-dot"></span>-85.2% Friction Reduction</span></td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </section>
 
-          <!-- Safeguard Metrics -->
-          <div class="guard-pill-row">
-            <span class="guard-chip"><strong>424</strong> 24h Pre-Debit Notices Sent</span>
-            <span class="guard-chip"><strong>114</strong> AFA Limits Respected (>₹15k / >₹1L)</span>
-            <span class="guard-chip"><strong>32</strong> Revoked Mandates Halted</span>
-            <span class="guard-chip"><strong>42</strong> DND Numbers Suppressed</span>
-            <span class="guard-chip"><strong>20</strong> Dispute Freezes Enforced</span>
-            <span class="guard-chip"><strong>33</strong> Payment Promises Honored</span>
+          <!-- 2-Column: Failure Breakdown & Decision Economics -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+            
+            <div class="panel" style="margin-bottom:0;">
+              <div class="panel-header">
+                <div>
+                  <h3 class="section-heading">Recovery by Failure Category</h3>
+                  <p class="section-sub">Calibrated yield across root cause classifications.</p>
+                </div>
+              </div>
+              <table class="enterprise-table">
+                <thead>
+                  <tr>
+                    <th>Failure Type</th>
+                    <th>AI Yield</th>
+                    <th>Baseline</th>
+                    <th>Lift</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Insufficient Funds</strong></td>
+                    <td style="color:var(--color-primary); font-weight:600;">34.2%</td>
+                    <td>11.0%</td>
+                    <td><span class="badge-pill pill-success"><span class="badge-dot"></span>+23.2%</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Bank Outage (503)</strong></td>
+                    <td style="color:var(--color-primary); font-weight:600;">68.5%</td>
+                    <td>14.2%</td>
+                    <td><span class="badge-pill pill-success"><span class="badge-dot"></span>+54.3%</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>AFA Cap Exceeded</strong></td>
+                    <td style="color:var(--color-primary); font-weight:600;">42.0%</td>
+                    <td>0.0%</td>
+                    <td><span class="badge-pill pill-success"><span class="badge-dot"></span>+42.0%</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Dormant KYC</strong></td>
+                    <td style="color:var(--color-primary); font-weight:600;">18.5%</td>
+                    <td>2.0%</td>
+                    <td><span class="badge-pill pill-success"><span class="badge-dot"></span>+16.5%</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="panel" style="margin-bottom:0;">
+              <div class="panel-header">
+                <div>
+                  <h3 class="section-heading">Why Intelligent Recovery Wins</h3>
+                  <p class="section-sub">Autonomous optimization vs blind 24-hour retries.</p>
+                </div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:12px; padding:4px 0;">
+                <div style="background:var(--bg-surface); border-radius:var(--radius-sm); padding:12px 14px; border:1px solid var(--border-color);">
+                  <div style="font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:4px;">
+                    Liquidity Window Synchronization
+                  </div>
+                  <div style="font-size:12.5px; color:var(--text-secondary); line-height:1.5;">
+                    Retries automatically synchronize with customer payday salary cycles (1st–5th of month) instead of repeating failing debits.
+                  </div>
+                </div>
+
+                <div style="background:var(--bg-surface); border-radius:var(--radius-sm); padding:12px 14px; border:1px solid var(--border-color);">
+                  <div style="font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:4px;">
+                    Dynamic Channel Failover
+                  </div>
+                  <div style="font-size:12.5px; color:var(--text-secondary); line-height:1.5;">
+                    Pivots to 1-click WhatsApp UPI Intent links during core banking outages (503) without exhausting auto-debit attempts.
+                  </div>
+                </div>
+
+                <div style="background:var(--bg-surface); border-radius:var(--radius-sm); padding:12px 14px; border:1px solid var(--border-color);">
+                  <div style="font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:4px;">
+                    Automated Regulatory Safety
+                  </div>
+                  <div style="font-size:12.5px; color:var(--text-secondary); line-height:1.5;">
+                    Instant quarantine on customer fraud disputes, TRAI quiet-hour suppression (20:00–08:00 IST), and 3x retry ceilings.
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
         </div>
 
         <!-- ============================================================= -->
-        <!-- VIEW 3: TRANSACTIONS & AUDIT EXPLORER -->
+        <!-- VIEW 3: DIAGNOSTIC SANDBOX -->
+        <!-- ============================================================= -->
+        <div class="view-section" id="view-playground">
+          
+          <div class="page-header">
+            <h1 class="page-title">Diagnostic Sandbox</h1>
+            <p class="page-subtitle">Test payment diagnosis, recovery routing, and customer promise-to-pay extraction.</p>
+          </div>
+
+          <!-- Playground Navigation Tabs -->
+          <div class="playground-tabs">
+            <button class="pg-tab-btn active" id="tabBtnDecline" onclick="switchPlaygroundTab('decline')">
+              Bank Decline Classifier & Routing
+            </button>
+            <button class="pg-tab-btn" id="tabBtnPtp" onclick="switchPlaygroundTab('ptp')">
+              Hinglish Voice & Chat PTP Extractor
+            </button>
+          </div>
+
+          <!-- TAB 1: Bank Decline Classifier & Routing -->
+          <div class="pg-tab-content active" id="pgContentDecline">
+            <div class="playground-console-grid">
+              
+              <!-- Input Failure Column (Left) -->
+              <div class="panel" style="margin-bottom:0;">
+                <div class="panel-header">
+                  <div>
+                    <h3 class="section-heading">Bank Decline Input</h3>
+                    <p class="section-sub">Select a preset scenario or enter custom bank error logs.</p>
+                  </div>
+                </div>
+
+                <!-- Preset Chips -->
+                <div class="preset-chip-row">
+                  <span class="preset-chip" onclick="applyDeclinePreset('switch_timeout')">NPCI Switch 503 (RC-91)</span>
+                  <span class="preset-chip" onclick="applyDeclinePreset('dormant_kyc')">Dormant KYC (Code 402)</span>
+                  <span class="preset-chip" onclick="applyDeclinePreset('afa_breach')">AFA Cap Breach (₹85k Sub)</span>
+                  <span class="preset-chip" onclick="applyDeclinePreset('salary_shortfall')">Salary Liquidity Shortfall</span>
+                  <span class="preset-chip" onclick="applyDeclinePreset('dispute_lock')">CPA Chargeback Dispute</span>
+                  <span class="preset-chip" onclick="applyDeclinePreset('ambiguous_raw')">Ambiguous Host Error</span>
+                </div>
+
+                <div class="pg-field" style="margin-bottom:12px;">
+                  <label for="liveErrorText">Raw Bank Decline String / Error Log</label>
+                  <textarea id="liveErrorText" class="log-input-area" rows="3" placeholder="e.g. switch unavailable rc-91 issuer inoperative cbs socket closed"></textarea>
+                </div>
+
+                <div class="pg-params-grid">
+                  <div class="pg-field">
+                    <label for="liveAmount">Transaction Amount (₹)</label>
+                    <input type="number" id="liveAmount" class="pg-input" value="4999.00" step="100">
+                  </div>
+                  <div class="pg-field">
+                    <label for="livePaymentMethod">Payment Method Rail</label>
+                    <select id="livePaymentMethod" class="pg-select">
+                      <option value="upi_autopay" selected>UPI AutoPay (e-Mandate)</option>
+                      <option value="card_recurring">Card Recurring (Debit/Credit)</option>
+                      <option value="netbanking_emandate">NetBanking e-NACH Mandate</option>
+                      <option value="b2b_invoice">B2B Commercial Invoice (45-day)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:16px;">
+                  <div class="pg-field">
+                    <label for="liveDispute">Dispute (CPA)</label>
+                    <select id="liveDispute" class="pg-select">
+                      <option value="false" selected>No (Normal)</option>
+                      <option value="true">Yes (Active Dispute)</option>
+                    </select>
+                  </div>
+                  <div class="pg-field">
+                    <label for="liveDnd">TRAI DND</label>
+                    <select id="liveDnd" class="pg-select">
+                      <option value="false" selected>Not Registered</option>
+                      <option value="true">Registered</option>
+                    </select>
+                  </div>
+                  <div class="pg-field">
+                    <label for="liveAttempt">Prior Retries</label>
+                    <select id="liveAttempt" class="pg-select">
+                      <option value="0" selected>0 (Initial Failure)</option>
+                      <option value="1">1 Prior Attempt</option>
+                      <option value="2">2 Prior Attempts</option>
+                      <option value="3">3 Attempts (Max Cap)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button class="btn btn-primary" id="btnRunDiagnosis" style="width:100%;" onclick="runLiveDiagnosis()">
+                  Analyze Failure
+                </button>
+              </div>
+
+              <!-- Diagnostic Decision Column (Right) -->
+              <div class="panel" style="margin-bottom:0;">
+                <div class="panel-header">
+                  <div>
+                    <h3 class="section-heading">Diagnostic Decision & Routing</h3>
+                    <p class="section-sub">Root cause diagnosis, compliance decision, and expected value calculation.</p>
+                  </div>
+                  <div id="liveClassifierTierBadge" class="badge-pill pill-neutral">
+                    <span class="badge-dot"></span>Awaiting Input
+                  </div>
+                </div>
+
+                <div id="liveDiagnosisResult" class="pg-output-box">
+                  <div style="text-align:center; padding:48px 20px; color:var(--text-muted);">
+                    <div style="font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:4px;">Diagnostic Console Ready</div>
+                    <div style="font-size:13px;">Select a preset or enter a custom decline string and click Analyze Failure.</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- TAB 2: Promise-to-Pay Tracker & NLU Extractor -->
+          <div class="pg-tab-content" id="pgContentPtp" style="display:none;">
+            
+            <div style="margin-bottom:16px;">
+              <h3 class="section-heading" style="font-size:18px;">Promise-to-Pay Tracker</h3>
+              <p class="section-sub">Track customer payment commitments, NLU extractions, and statutory recovery follow-ups.</p>
+            </div>
+
+            <!-- Top Summary Row -->
+            <div class="compliance-health-grid" style="margin-bottom:20px;">
+              <div class="compliance-health-card">
+                <div class="compliance-health-label">ACTIVE PROMISES</div>
+                <div class="compliance-health-val">6</div>
+                <div class="compliance-health-sub">Active payment commitments</div>
+              </div>
+              <div class="compliance-health-card">
+                <div class="compliance-health-label">DUE TODAY</div>
+                <div class="compliance-health-val">2</div>
+                <div class="compliance-health-sub">Awaiting settlement verification</div>
+              </div>
+              <div class="compliance-health-card">
+                <div class="compliance-health-label">OVERDUE</div>
+                <div class="compliance-health-val">1</div>
+                <div class="compliance-health-sub">Grace window expired</div>
+              </div>
+              <div class="compliance-health-card">
+                <div class="compliance-health-label">RECOVERED FROM PTP</div>
+                <div class="compliance-health-val" style="color:var(--color-primary);">₹52,400.00</div>
+                <div class="compliance-health-sub">4 fulfilled commitments</div>
+              </div>
+            </div>
+
+            <!-- Filter Toolbar -->
+            <div class="table-filter-bar">
+              <div class="search-input-wrapper">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="ptpSearchInput" class="search-input" placeholder="Search customer, account, or promise..." oninput="filterPtpRecords()">
+              </div>
+
+              <div class="filter-controls-group">
+                <select id="ptpStatusFilter" class="filter-select" onchange="filterPtpRecords()">
+                  <option value="ALL">Status: All</option>
+                  <option value="PROMISED">Promised</option>
+                  <option value="DUE_TODAY">Due Today</option>
+                  <option value="OVERDUE">Overdue</option>
+                  <option value="PAID">Paid / Fulfilled</option>
+                </select>
+
+                <button class="btn btn-secondary btn-sm" onclick="clearPtpFilters()">Clear</button>
+              </div>
+            </div>
+
+            <!-- PTP Table -->
+            <div class="table-wrapper" style="margin-bottom:24px;">
+              <table class="enterprise-table">
+                <thead>
+                  <tr>
+                    <th>Customer / Account</th>
+                    <th class="col-numeric">Promised Amount</th>
+                    <th>Promise Date</th>
+                    <th>Status</th>
+                    <th>Workflow Action</th>
+                    <th style="text-align:right;">Inspect</th>
+                  </tr>
+                </thead>
+                <tbody id="ptpTableBody">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Interactive Live NLU Voice & Chat Extractor Panel -->
+            <div class="playground-console-grid">
+              
+              <div class="panel" style="margin-bottom:0;">
+                <div class="panel-header">
+                  <div>
+                    <h3 class="section-heading">Live Hinglish NLU Extractor</h3>
+                    <p class="section-sub">Test conversational customer transcripts from voice bots or WhatsApp chats.</p>
+                  </div>
+                </div>
+
+                <div class="preset-chip-row">
+                  <span class="preset-chip" onclick="applyPtpPreset('salary_promise')">"Kal salary aane par 5000 bhej dunga"</span>
+                  <span class="preset-chip" onclick="applyPtpPreset('date_promise')">"5th ko account me paise aate hi transfer karta hu"</span>
+                  <span class="preset-chip" onclick="applyPtpPreset('vague_promise')">"Abhi balance nahi hai, agle hafte call karo"</span>
+                  <span class="preset-chip" onclick="applyPtpPreset('rejection')">"Galat number hai, dobara call mat karna"</span>
+                </div>
+
+                <div class="pg-field" style="margin-bottom:16px;">
+                  <label for="livePtpText">Customer Conversational Transcript (Voice / Chat)</label>
+                  <textarea id="livePtpText" class="log-input-area" rows="4" placeholder="e.g. Haan bhaiya kal meri salary credit ho jayegi tab main pakka ₹4,999 transfer kar dunga."></textarea>
+                </div>
+
+                <button class="btn btn-primary" id="btnRunPtp" style="width:100%;" onclick="runLivePtpExtract()">
+                  Extract Promise to Pay
+                </button>
+              </div>
+
+              <div class="panel" style="margin-bottom:0;">
+                <div class="panel-header">
+                  <div>
+                    <h3 class="section-heading">Extracted Promise & Policy Action</h3>
+                    <p class="section-sub">Parsed structured commitment, grace period, and CPA 2019 dunning freeze.</p>
+                  </div>
+                  <div id="livePtpBadge" class="badge-pill pill-neutral">
+                    <span class="badge-dot"></span>NLU Ready
+                  </div>
+                </div>
+
+                <div id="livePtpResult" class="pg-output-box">
+                  <div style="text-align:center; padding:48px 20px; color:var(--text-muted);">
+                    <div style="font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:4px;">NLU Extractor Ready</div>
+                    <div style="font-size:13px;">Paste a customer chat or voice transcript to extract promised amounts and dates.</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- ============================================================= -->
+        <!-- VIEW 4: AUDIT EXPLORER -->
         <!-- ============================================================= -->
         <div class="view-section" id="view-transactions">
           
           <div class="page-header">
-            <h1 class="page-title">Transaction & Audit Explorer</h1>
-            <p class="page-subtitle">Search individual payment events, filter by test case tags, and inspect step-by-step regulatory audit logs.</p>
+            <h1 class="page-title">Audit Explorer</h1>
+            <p class="page-subtitle">Inspect recovery decisions, compliance checks, and immutable audit records.</p>
+            <div class="audit-meta-bar">
+              <span class="audit-meta-item"><strong>2,548</strong> audit blocks</span>
+              <span class="audit-meta-divider">·</span>
+              <span class="audit-meta-item"><strong>750</strong> transactions</span>
+              <span class="audit-meta-divider">·</span>
+              <span class="audit-meta-item" style="color:var(--color-success-text);"><strong>0</strong> compliance breaches</span>
+              <span class="audit-meta-divider">·</span>
+              <span class="audit-meta-item" style="color:var(--color-success-text);"><span class="badge-dot"></span>Ledger cryptographically verified</span>
+            </div>
           </div>
 
           <section class="panel">
-            <div class="panel-header">
-              <div>
-                <h2 class="section-heading">Transaction Records (750 Ingested)</h2>
-                <p class="section-sub">Select any transaction to inspect the complete state transition timeline.</p>
+            <div class="table-filter-bar">
+              <div class="search-input-wrapper">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="searchInput" class="search-input" placeholder="Search transaction, failure, or action..." onkeyup="filterTransactions()">
               </div>
-
-              <div class="table-controls">
-                <input type="text" id="searchInput" class="input-search" placeholder="Search Txn ID, Method, or Reason..." onkeyup="filterTransactions()">
-                
-                <select id="stateFilter" class="input-select" onchange="filterTransactions()">
-                  <option value="ALL">All Outcomes</option>
+              
+              <div class="filter-controls-group">
+                <select id="stateFilter" class="pg-select" onchange="filterTransactions()">
+                  <option value="ALL">Status: All</option>
                   <option value="RECOVERED">Recovered</option>
-                  <option value="UNRECOVERABLE">Compliantly Stopped</option>
+                  <option value="UNRECOVERABLE">Stopped</option>
                   <option value="HUMAN_REVIEW">Human Review</option>
                 </select>
 
-                <select id="edgeFilter" class="input-select" onchange="filterTransactions()">
-                  <option value="ALL">All Test Cases</option>
-                  <option value="EDGE_01">EDGE-01: Zombie Retry Cap (3x)</option>
-                  <option value="EDGE_02">EDGE-02: ₹15,001 AFA Threshold</option>
-                  <option value="EDGE_03">EDGE-03: ₹1,00,001 Exemption</option>
-                  <option value="EDGE_04">EDGE-04: Expiring Mandate</option>
-                  <option value="EDGE_05">EDGE-05: Quiet Hours Delay</option>
-                  <option value="EDGE_06">EDGE-06: PTP Grace Window</option>
-                  <option value="EDGE_07">EDGE-07: Mandate Revoked</option>
-                  <option value="EDGE_08">EDGE-08: Active Dispute Freeze</option>
-                  <option value="EDGE_09">EDGE-09: MSMED 45-Day Cap</option>
-                  <option value="EDGE_10">EDGE-10: Ambiguous Error Triage</option>
+                <select id="edgeFilter" class="pg-select" onchange="filterTransactions()">
+                  <option value="ALL">Failure Reason: All</option>
+                  <option value="EDGE_01">Zombie Retries (3x Cap)</option>
+                  <option value="EDGE_02">AFA Limit Breached (>₹15k)</option>
+                  <option value="EDGE_03">AFA High Exemption (₹1 Lakh)</option>
+                  <option value="EDGE_04">Expiring Mandates</option>
+                  <option value="EDGE_05">TRAI Quiet Hours Deferral</option>
+                  <option value="EDGE_06">PTP Promise Grace Window</option>
+                  <option value="EDGE_07">Revoked Mandate (User Cancel)</option>
+                  <option value="EDGE_08">Active Fraud Dispute</option>
+                  <option value="EDGE_09">B2B Invoice (MSMED 45-Day)</option>
+                  <option value="EDGE_10">Unmapped / Ambiguous Error</option>
                 </select>
+
+                <button class="btn btn-secondary btn-sm" onclick="clearAuditFilters()">Clear</button>
               </div>
             </div>
 
             <div class="table-wrapper">
-              <table class="fintech-table" id="transactionsTable">
+              <table class="enterprise-table" id="transactionsTable">
                 <thead>
                   <tr>
                     <th>Transaction</th>
-                    <th>Amount (INR)</th>
-                    <th>Failure Diagnosis</th>
+                    <th style="text-align:right;">Amount</th>
+                    <th>Diagnosis</th>
                     <th>Status</th>
-                    <th>Compliance Guard</th>
-                    <th style="text-align:right;">Action</th>
+                    <th>Compliance</th>
+                    <th>Action</th>
+                    <th style="text-align:right;">Inspect</th>
                   </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -572,90 +1185,242 @@
                 </tbody>
               </table>
             </div>
+
+            <div class="table-pagination-bar" id="auditPaginationBar">
+              <span class="pagination-info" id="paginationInfo">Showing 1–100 of 750 records</span>
+            </div>
           </section>
 
         </div>
 
         <!-- ============================================================= -->
-        <!-- VIEW 4: COMPLIANCE RULES -->
+        <!-- VIEW 5: COMPLIANCE RULES -->
         <!-- ============================================================= -->
         <div class="view-section" id="view-rules">
           
           <div class="page-header">
-            <h1 class="page-title">Programmatic Statutory Compliance Rules</h1>
-            <p class="page-subtitle">Hard-coded Indian regulatory invariants that the AI recovery router cannot bypass under any circumstances.</p>
+            <h1 class="page-title">Compliance Rules</h1>
+            <p class="page-subtitle">Statutory guardrails that constrain recovery workflows and eliminate non-compliant retries.</p>
           </div>
 
-          <section class="panel">
-            <div class="panel-header">
-              <div>
-                <h2 class="section-heading">Codified Regulatory Frameworks</h2>
-                <p class="section-sub">Statutory citations and deterministic rules enforced across every state transition.</p>
+          <!-- Top Health Summary Row -->
+          <div class="compliance-health-grid">
+            <div class="compliance-health-card">
+              <div class="compliance-health-label">RULES EVALUATED</div>
+              <div class="compliance-health-val">750</div>
+              <div class="compliance-health-sub">Across 750 ingested events</div>
+            </div>
+            <div class="compliance-health-card highlight-success">
+              <div class="compliance-health-label">STATUTORY BREACHES</div>
+              <div class="compliance-health-val" style="color:var(--color-success-text);">0</div>
+              <div class="compliance-health-sub" style="color:var(--color-success-text);">100% policy enforcement</div>
+            </div>
+            <div class="compliance-health-card">
+              <div class="compliance-health-label">COMPLIANT RECOVERIES</div>
+              <div class="compliance-health-val" style="color:var(--color-primary);">198</div>
+              <div class="compliance-health-sub">23.84% verified yield</div>
+            </div>
+            <div class="compliance-health-card">
+              <div class="compliance-health-label">UNSAFE RETRIES BLOCKED</div>
+              <div class="compliance-health-val">750</div>
+              <div class="compliance-health-sub">0 blind retries wasted</div>
+            </div>
+          </div>
+
+          <!-- GROUP 1: PAYMENT & E-MANDATE CONTROLS -->
+          <div class="compliance-group-header">
+            <span>Payment & E-Mandate Controls (RBI Framework)</span>
+          </div>
+
+          <div class="rules-matrix-grid">
+            
+            <div class="rule-matrix-card">
+              <div class="rule-matrix-header">
+                <span class="rule-matrix-title">Mandatory 24h Pre-Debit Notice</span>
+                <span class="badge-pill pill-warning"><span class="badge-dot"></span>Delayed (24h)</span>
               </div>
-              <div class="simulation-pill">
-                <span class="status-dot-green"></span>
-                <span>100% Invariants Verified</span>
+              <div class="rule-clause-block">
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">TRIGGER</span>
+                  <span class="rule-clause-text">An automated recurring debit retry is scheduled on an e-mandate instrument.</span>
+                </div>
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">ACTION</span>
+                  <span class="rule-clause-text">Deliver advance notice &ge; 24h in advance via WhatsApp/SMS with instant opt-out link.</span>
+                </div>
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">STATUTE</span>
+                  <span class="rule-clause-text">RBI Master Direction on E-Mandates (RBI/DPSS/2026-27/396) mandates informed customer consent.</span>
+                </div>
               </div>
             </div>
 
-            <div class="pipeline-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
-              
-              <div class="pipeline-card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <span class="badge-pill pill-info"><span class="badge-dot"></span>RBI Framework</span>
-                  <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">RBI/DPSS/2026-27/396</span>
-                </div>
-                <h3>Mandatory 24h Pre-Debit Notice</h3>
-                <p>Every automated recurring debit retry strictly requires a customer notification delivered at least 24 hours in advance via WhatsApp/SMS containing an instant opt-out link.</p>
+            <div class="rule-matrix-card">
+              <div class="rule-matrix-header">
+                <span class="rule-matrix-title">Statutory AFA Limit Caps (₹15k / ₹1L)</span>
+                <span class="badge-pill pill-info"><span class="badge-dot"></span>Channel Switch</span>
               </div>
-
-              <div class="pipeline-card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <span class="badge-pill pill-info"><span class="badge-dot"></span>AFA Limit Cap</span>
-                  <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">RBI AFA 2026</span>
+              <div class="rule-clause-block">
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">TRIGGER</span>
+                  <span class="rule-clause-text">Transaction amount exceeds ₹15,000 (or ₹1,00,000 for Mutual Funds & Insurance).</span>
                 </div>
-                <h3>Statutory ₹15k / ₹1L Ceilings</h3>
-                <p>Recurring payments > ₹15,000 prohibit direct auto-debits and automatically convert to dynamic AFA OTP payment links. Relaxed to ₹1,00,000 for Mutual Funds, Insurance, and Credit Cards.</p>
-              </div>
-
-              <div class="pipeline-card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <span class="badge-pill pill-warning"><span class="badge-dot"></span>TRAI TCCCPR</span>
-                  <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">08:00–20:00 IST</span>
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">ACTION</span>
+                  <span class="rule-clause-text">Prohibit direct auto-debit; generate dynamic 1-click AFA OTP checkout link.</span>
                 </div>
-                <h3>Customer Quiet Hours & DND</h3>
-                <p>All outbound customer touches generated outside 08:00–20:00 IST are queued until next morning. Promotional messages to National DND registry numbers are strictly suppressed.</p>
-              </div>
-
-              <div class="pipeline-card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <span class="badge-pill pill-error"><span class="badge-dot"></span>CPA 2019</span>
-                  <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">Dispute Quarantine</span>
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">STATUTE</span>
+                  <span class="rule-clause-text">Additional Factor of Authentication (AFA) is statutory for high-value recurring debits.</span>
                 </div>
-                <h3>Active Dispute & Chargeback Freeze</h3>
-                <p>When a transaction is flagged with an active chargeback or customer fraud dispute, all automated retries and dunning communications instantly freeze (<code>STOP_DISPUTE_FRAUD</code>).</p>
               </div>
-
-              <div class="pipeline-card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <span class="badge-pill pill-success"><span class="badge-dot"></span>DPDP Act 2023</span>
-                  <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">PII Protection</span>
-                </div>
-                <h3>Customer Data Privacy & Masking</h3>
-                <p>All customer identifiers (phone numbers, email addresses) are permanently masked (e.g. <code>+91-9876****4321</code>) across all runtime audit trails, logs, and database records.</p>
-              </div>
-
-              <div class="pipeline-card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <span class="badge-pill pill-neutral"><span class="badge-dot"></span>MSMED Act 2006</span>
-                  <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">Section 15 & 16</span>
-                </div>
-                <h3>B2B 45-Day Overdue Ceiling</h3>
-                <p>Commercial invoices approaching the statutory 45-day overdue boundary are automatically clamped and escalated directly to finance operations rather than standard customer nudges.</p>
-              </div>
-
             </div>
-          </section>
+
+            <div class="rule-matrix-card">
+              <div class="rule-matrix-header">
+                <span class="rule-matrix-title">Zombie Retry Ceiling (3x Cap)</span>
+                <span class="badge-pill pill-error"><span class="badge-dot"></span>Blocked</span>
+              </div>
+              <div class="rule-clause-block">
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">TRIGGER</span>
+                  <span class="rule-clause-text">Mandate has recorded 3 prior failed recovery touches without settlement.</span>
+                </div>
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">ACTION</span>
+                  <span class="rule-clause-text">Permanently halt automated dunning touches (<code>STOP_MAX_RETRIES</code>).</span>
+                </div>
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">STATUTE</span>
+                  <span class="rule-clause-text">RBI Fair Practices Code prohibits continuous nuisance attempts on unresponsive mandates.</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- GROUP 2: CUSTOMER COMMUNICATION & TIMING CONTROLS -->
+          <div class="compliance-group-header" style="margin-top:24px;">
+            <span>Customer Communication & Timing (TRAI & CPA Framework)</span>
+          </div>
+
+          <div class="rules-matrix-grid">
+            
+            <div class="rule-matrix-card">
+              <div class="rule-matrix-header">
+                <span class="rule-matrix-title">Customer Quiet Hours & DND</span>
+                <span class="badge-pill pill-warning"><span class="badge-dot"></span>Delayed (08:30 AM)</span>
+              </div>
+              <div class="rule-clause-block">
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">TRIGGER</span>
+                  <span class="rule-clause-text">Outreach trigger occurs outside 08:00–20:00 IST or destination is registered on DND.</span>
+                </div>
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">ACTION</span>
+                  <span class="rule-clause-text">Hold outreach in compliant queue for 08:30 AM release; suppress promotional dunning on DND.</span>
+                </div>
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">STATUTE</span>
+                  <span class="rule-clause-text">TRAI Telecom Commercial Communications Customer Preference Regulations prohibit off-hour nuisance.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rule-matrix-card">
+              <div class="rule-matrix-header">
+                <span class="rule-matrix-title">Active Dispute & Chargeback Freeze</span>
+                <span class="badge-pill pill-error"><span class="badge-dot"></span>Blocked</span>
+              </div>
+              <div class="rule-clause-block">
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">TRIGGER</span>
+                  <span class="rule-clause-text">Customer files a fraud dispute or issuing bank records an active chargeback.</span>
+                </div>
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">ACTION</span>
+                  <span class="rule-clause-text">Instantly quarantine transaction and permanently halt all retry touches (<code>STOP_DISPUTE_FRAUD</code>).</span>
+                </div>
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">STATUTE</span>
+                  <span class="rule-clause-text">Consumer Protection Act (CPA 2019) prohibits dunning on actively contested debt.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rule-matrix-card">
+              <div class="rule-matrix-header">
+                <span class="rule-matrix-title">Promise-to-Pay (PTP) Grace Window</span>
+                <span class="badge-pill pill-warning"><span class="badge-dot"></span>Paused</span>
+              </div>
+              <div class="rule-clause-block">
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">TRIGGER</span>
+                  <span class="rule-clause-text">Customer states an explicit commitment date/time via voice or chat transcript.</span>
+                </div>
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">ACTION</span>
+                  <span class="rule-clause-text">Transition FSM state to <code>PTP_FROZEN</code> and suppress outreach until promised settlement date.</span>
+                </div>
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">STATUTE</span>
+                  <span class="rule-clause-text">CPA 2019 prohibits customer harassment while active commitment is in effect.</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- GROUP 3: DATA PRIVACY & COMMERCIAL B2B CONTROLS -->
+          <div class="compliance-group-header" style="margin-top:24px;">
+            <span>Data Privacy & Commercial B2B Controls (DPDP & MSMED Framework)</span>
+          </div>
+
+          <div class="rules-matrix-grid">
+            
+            <div class="rule-matrix-card">
+              <div class="rule-matrix-header">
+                <span class="rule-matrix-title">Customer PII Data Masking</span>
+                <span class="badge-pill pill-success"><span class="badge-dot"></span>Enforced</span>
+              </div>
+              <div class="rule-clause-block">
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">TRIGGER</span>
+                  <span class="rule-clause-text">Customer phone numbers or email addresses are ingested or audited.</span>
+                </div>
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">ACTION</span>
+                  <span class="rule-clause-text">Permanently mask identifiers (<code>+91-9876****4321</code>) across all runtime audit logs and UI views.</span>
+                </div>
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">STATUTE</span>
+                  <span class="rule-clause-text">Digital Personal Data Protection Act (DPDP 2023) mandates data minimization and privacy by design.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rule-matrix-card">
+              <div class="rule-matrix-header">
+                <span class="rule-matrix-title">B2B Overdue Ceiling (45 Days)</span>
+                <span class="badge-pill pill-info"><span class="badge-dot"></span>Escalated</span>
+              </div>
+              <div class="rule-clause-block">
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">TRIGGER</span>
+                  <span class="rule-clause-text">Commercial B2B invoice approaches or exceeds the statutory 45-day overdue boundary.</span>
+                </div>
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">ACTION</span>
+                  <span class="rule-clause-text">Halt customer automated nudges and escalate to finance ops with statutory 3x repo interest (19.5% p.a.).</span>
+                </div>
+                <div class="rule-clause-row">
+                  <span class="rule-clause-tag">STATUTE</span>
+                  <span class="rule-clause-text">MSMED Act Section 15 & 16 mandates statutory interest and formal dispute escalation.</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
 
         </div>
 
@@ -663,17 +1428,17 @@
     </div>
   </div>
 
-  <!-- Detail Modal Drawer -->
-  <div class="modal-backdrop" id="auditModal" onclick="closeModal(event)">
-    <div class="modal-card" onclick="event.stopPropagation()">
-      <div class="modal-header">
+  <!-- Slide-Over Audit Drawer / Modal -->
+  <div class="drawer-overlay" id="auditModal" onclick="closeModal(event)">
+    <div class="drawer-panel" onclick="event.stopPropagation()">
+      <div class="drawer-header">
         <div>
-          <div class="modal-title" id="modalTxnId">Transaction Details: pay_xxxx</div>
-          <div class="modal-subtitle" id="modalCustomer">Customer: +91-98******0000</div>
+          <div class="drawer-title" id="modalTxnId">Transaction Audit Trail</div>
+          <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;" id="modalCustomer">Customer Metadata</div>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
-          <button class="btn btn-secondary" onclick="exportCurrentTxnAudit()">Export Log</button>
-          <button class="btn-close" onclick="closeModal()">
+          <button class="btn btn-secondary btn-sm" onclick="exportCurrentTxnAudit()">Export Log</button>
+          <button class="btn-close" onclick="closeModal()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -681,12 +1446,12 @@
           </button>
         </div>
       </div>
-      <div class="modal-content" id="modalBody">
+      <div class="drawer-body" id="modalBody">
         <!-- Rendered dynamically -->
       </div>
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=3.0"></script>
 </body>
 </html>
