@@ -303,7 +303,7 @@ To win revenue back without causing regulatory fines, merchant churn, or harassm
 * **What our agent enforces**: Overdue commercial invoices approaching 45 days bypass standard automated reminders and are immediately escalated to merchant finance operations.
 
 <a id="rule-9-cryptographic-audit-ledger"></a>
-### 9. 🛡️ Cryptographic SHA-256 Audit Trail & Ledger Integrity (Section 10 Standard)
+### 9. 🛡️ Cryptographic SHA-256 Audit Trail & Ledger Integrity
 * **What the engineering & audit standard mandates**: Every state transition must produce an immutable record linking back to the previous block's SHA-256 hash (`SHA-256(prev_hash : event_data)`) to guarantee zero post-hoc log tampering.
 * **What our agent enforces**: All 2,548 transition events across the batch simulation form a verifiable cryptographic chain from genesis block `0000...0000` to the final settlement, with automated integrity verification on every audit export.
 
@@ -387,8 +387,7 @@ razorpay-ai-challenge/
 │   ├── index.html                    # 5-View multi-page application layout
 │   ├── styles.css                    # FinTech design system tokens (Light theme)
 │   ├── app.js                        # Frontend controller, routing, & simulation runner
-│   ├── server.py                     # Dedicated API & dashboard HTTP server (Port 8888)
-│   └── dashboard.py                  # Streamlit dashboard
+│   └── server.py                     # Dedicated API & dashboard HTTP server (Port 8888)
 ├── src/                              # Core Autonomous Agent Architecture
 │   ├── config/                       # Codified regulatory rules & economic constants
 │   │   └── regulatory_rules.py       # AFA caps, TRAI quiet hours, MSMED penal interest
@@ -429,11 +428,9 @@ razorpay-ai-challenge/
 
 ## 🌟 Key Innovations & Architectural Strengths
 
-1. **Volume & Measured Yield**: Tested across **750 real-world transactions / ₹2.28 Crore volume** achieving **+164.2% recovery lift (+₹33.75 Lakhs)**.
-2. **Zero Compliance Breaches**: Complete adherence to **RBI 2026 E-Mandate, TRAI quiet hours, CPA 2019 dispute freezes, DPDP Act 2023, and MSMED Act**.
-3. **Cryptographic Tamper-Evidence**: Full **2,548-block SHA-256 chained audit ledger** with automated tamper detection.
-4. **Three-Tier Resilient Classifier Cascade**: Tier 1 deterministic regex triage (<1ms) → Tier 2 OpenRouter LLM disambiguation (Qwen / DeepSeek / Gemini) → Tier 3 Human Ops quarantine. Operates 100% self-contained offline with zero external API dependencies required.
-5. **Production FinTech SaaS Design**: Enterprise light-theme UI with 5 dedicated views, live animated simulation controls, interactive chaos injection sandbox, NLU PTP extractor, and merchant ROI modeling.
+1. **Three-Tier Resilient Classifier Cascade**: Tier 1 deterministic regex triage (<1ms) → Tier 2 OpenRouter LLM semantic disambiguation (Qwen / DeepSeek / Gemini) → Tier 3 Human Ops quarantine. Operates 100% self-contained offline with zero external API dependencies required.
+2. **Cryptographic Tamper-Evidence**: Full **2,548-block SHA-256 chained audit ledger** linking back to genesis block `0000...0000` with automated tamper verification on every export.
+3. **Statutory Refusal Invariants**: Programmatic guardrails guaranteeing 0 regulatory breaches across **RBI 2026 E-Mandate, TRAI quiet hours, CPA 2019 dispute freezes, DPDP Act 2023, and MSMED Act**.
 
 ---
 
