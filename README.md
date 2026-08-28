@@ -176,35 +176,69 @@ flowchart TD
 The recovery engine enforces all statutory waiting periods, cooling-off intervals, stopping rules, and escalation paths through a deterministic 9-state finite state machine:
 
 ```mermaid
-stateDiagram-v2
-    [*] --> DETECTED: Webhook / Telemetry Ingestion
+flowchart TD
+    %% ─────────────────────────────────────────────────────────────
+    %% INITIAL INGESTION & DIAGNOSIS
+    %% ─────────────────────────────────────────────────────────────
+    START(("●")) -->|Webhook / Telemetry Ingestion| DETECTED["<b>1. DETECTED</b><br/><sub>Ingest Gateway Payload / Telemetry</sub>"]
+    DETECTED -->|Ingest Payload & Classify Error| DIAGNOSING["<b>2. DIAGNOSING</b><br/><sub>Root Cause Classification & Triage</sub>"]
 
-    DETECTED --> DIAGNOSING: Ingest Payload & Classify Error
-    
-    DIAGNOSING --> ACTION_SCHEDULED: Soft Failure / AFA Link Scheduled
-    DIAGNOSING --> HUMAN_REVIEW: Low Confidence < 0.70 / Risk Flag
-    DIAGNOSING --> UNRECOVERABLE: Terminal Hard Stop (Revoked / Dispute / Opt-Out)
+    %% ─────────────────────────────────────────────────────────────
+    %% TRIAGE TRANSITIONS
+    %% ─────────────────────────────────────────────────────────────
+    DIAGNOSING -->|"Soft Failure / AFA Link Scheduled<br/>(Confidence ≥ 0.85)"| ACTION_SCHEDULED["<b>3. ACTION_SCHEDULED</b><br/><sub>24h Pre-Debit Notice & 48h Cooling Queued</sub>"]
+    DIAGNOSING -->|"Low Confidence < 0.70 / Risk Flag"| HUMAN_REVIEW["<b>4. HUMAN_REVIEW</b><br/><sub>Manual Operations Review Queue</sub>"]
+    DIAGNOSING -->|"Terminal Hard Stop<br/>(Revoked / Dispute / Opt-Out)"| UNRECOVERABLE["<b>9. UNRECOVERABLE 🛑</b><br/><sub>Permanent Quarantine & Stopping Rule</sub>"]
 
-    HUMAN_REVIEW --> ACTION_SCHEDULED: Operator Approved
-    HUMAN_REVIEW --> UNRECOVERABLE: Operator Rejected / Blocked
+    %% ─────────────────────────────────────────────────────────────
+    %% HUMAN REVIEW BRANCHES
+    %% ─────────────────────────────────────────────────────────────
+    HUMAN_REVIEW -->|Operator Approved| ACTION_SCHEDULED
+    HUMAN_REVIEW -->|Operator Rejected / Blocked| UNRECOVERABLE
 
-    ACTION_SCHEDULED --> RETRYING: 24h Notice Window & 48h Cooling Elapsed
+    %% ─────────────────────────────────────────────────────────────
+    %% RETRY EXECUTION & MULTI-RAIL ADAPTATION
+    %% ─────────────────────────────────────────────────────────────
+    ACTION_SCHEDULED -->|24h Notice Window & 48h Cooling Elapsed| RETRYING["<b>5. RETRYING</b><br/><sub>Smart Auto-Debit / Salary Snap Execution</sub>"]
 
-    RETRYING --> RECOVERED: Payment Succeeded (STOP_PAID)
-    RETRYING --> ACTION_SCHEDULED: Soft Failure Attempt #1 (Requeue + 48h Cooling)
-    RETRYING --> RETRYING: Soft Failure Attempt #2 (Digital Nudge + Cooling)
-    RETRYING --> ESCALATED: Soft Failure Attempt #3 (Debit Cap: Handoff to Voice Bot)
-    RETRYING --> UNRECOVERABLE: Customer Opt-Out (STOP_OPT_OUT)
+    RETRYING -->|Payment Succeeded (STOP_PAID)| RECOVERED["<b>8. RECOVERED 🚀</b><br/><sub>Settled & Queue Purged (Terminal Success)</sub>"]
+    RETRYING -->|"Soft Failure Attempt #1<br/>(Requeue + 48h Cooling)"| ACTION_SCHEDULED
+    RETRYING -->|"Soft Failure Attempt #2<br/>(Digital Nudge + Cooling)"| RETRYING
+    RETRYING -->|"Soft Failure Attempt #3<br/>(Debit Cap: Handoff to Voice Bot)"| ESCALATED["<b>6. ESCALATED</b><br/><sub>Empathetic Hinglish Voice Bot Outreach</sub>"]
+    RETRYING -->|Customer Opt-Out (STOP_OPT_OUT)| UNRECOVERABLE
 
-    ESCALATED --> PTP_FROZEN: Promise-to-Pay Date Locked (STOP_PTP_ACTIVE)
-    ESCALATED --> RECOVERED: Paid via Call Link (STOP_PAID)
-    ESCALATED --> UNRECOVERABLE: Outreach Exhausted / 14-Day Limit
+    %% ─────────────────────────────────────────────────────────────
+    %% VOICE ESCALATION & PTP GRACE WINDOW
+    %% ─────────────────────────────────────────────────────────────
+    ESCALATED -->|"Promise-to-Pay Date Locked<br/>(STOP_PTP_ACTIVE)"| PTP_FROZEN["<b>7. PTP_FROZEN</b><br/><sub>Outreach Frozen in Grace Window</sub>"]
+    ESCALATED -->|Paid via Call Link (STOP_PAID)| RECOVERED
+    ESCALATED -->|Outreach Exhausted / 14-Day Limit| UNRECOVERABLE
 
-    PTP_FROZEN --> RECOVERED: Paid During Grace Window (STOP_PAID)
-    PTP_FROZEN --> RETRYING: Grace Window Expired Unpaid
+    PTP_FROZEN -->|Paid During Grace Window (STOP_PAID)| RECOVERED
+    PTP_FROZEN -->|Grace Window Expired Unpaid| RETRYING
 
-    RECOVERED --> [*]
-    UNRECOVERABLE --> [*]
+    %% ─────────────────────────────────────────────────────────────
+    %% TERMINAL EXITS
+    %% ─────────────────────────────────────────────────────────────
+    RECOVERED --> END_REC(("◎"))
+    UNRECOVERABLE --> END_UNREC(("◎"))
+
+    %% ─────────────────────────────────────────────────────────────
+    %% UI COLOR THEMING (SaaS Light & Dark Mode Compatible)
+    %% ─────────────────────────────────────────────────────────────
+    classDef initial fill:#f8fafc,stroke:#64748b,stroke-width:2px,color:#0f172a;
+    classDef active fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#1e3a8a;
+    classDef purple fill:#faf5ff,stroke:#7c3aed,stroke-width:2px,color:#4c1d95;
+    classDef warning fill:#fffbeb,stroke:#d97706,stroke-width:2px,color:#78350f;
+    classDef success fill:#f0fdf4,stroke:#16a34a,stroke-width:2px,color:#14532d;
+    classDef danger fill:#fef2f2,stroke:#dc2626,stroke-width:2px,color:#7f1d1d;
+
+    class DETECTED,DIAGNOSING initial;
+    class ACTION_SCHEDULED,RETRYING active;
+    class HUMAN_REVIEW purple;
+    class ESCALATED,PTP_FROZEN warning;
+    class RECOVERED success;
+    class UNRECOVERABLE danger;
 ```
 
 ---
