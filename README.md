@@ -365,21 +365,17 @@ Every regulatory guardrail is verified by dedicated automated tests that assert 
 The web application is built with a **Clean Light-Theme Enterprise FinTech SaaS Design System** inspired by Stripe, Linear, and Vercel:
 
 1. **Multi-Page Dedicated Hash Routing (5 Core Views)**:
-   * **Overview (`#overview`)**: Top KPIs, **Live Chaos Injection Sandbox**, and the **Interactive Merchant ROI Calculator**.
+   * **Overview (`#overview`)**: Top KPIs, **Live Chaos Injection Sandbox**, and the **Interactive Merchant ROI Calculator** (GMV ₹1 Cr–₹100 Cr).
    * **Benchmark (`#benchmark`)**: Comparative recovery charts, 14-day metric tables, and statutory safeguard breakdowns.
    * **Diagnostic Sandbox (`#playground`)**:
      - **Live Decline Triage & LLM Disambiguation**: Test arbitrary error text against the 3-tier cascade in real time.
      - **NLU Promise-to-Pay (PTP) Extractor**: Extract conversational PTP dates, amounts, and freeze rules from English/Hinglish transcripts.
    * **Audit Explorer (`#transactions`)**: 6-column fluid table with search, edge-case filters, zero horizontal scroll, and SHA-256 block inspection drawer.
    * **Compliance Rules (`#rules`)**: Interactive codification of the 6 Indian statutory regulatory frameworks.
-2. **Interactive Live Animated Simulation Runner**:
-   * Click **"Run Demo"** to watch the state machine ingest, diagnose, fast-forward virtual time, negotiate a Hinglish voice PTP, and compliantly settle ₹4,999.00 in real time.
+2. **Interactive Live Animated Simulation Runner & State Reset**:
+   * Click **"Run Simulation"** to watch the state machine ingest, diagnose, fast-forward virtual time, negotiate a Hinglish voice PTP, and compliantly settle ₹4,999.00 in real time. Click **"Reset Simulation"** to return to standby anytime.
 3. **One-Click Regulatory PDF Report Generation**:
    * Export the entire 750-transaction compliance audit trail or single-transaction records as formatted executive PDF reports directly from the UI header or via `scripts/generate_pdf_report.py`.
-4. **Draggable & Collapsible Sidebar**:
-   * Drag the vertical handle to adjust width between `180px` and `420px`, or click `◀` to collapse into icon mode with persistent preference.
-5. **Interactive Merchant ROI Calculator**:
-   * Move GMV (₹1 Cr – ₹100 Cr) and failure rate sliders to project annual recovered revenue and regulatory fines avoided.
 
 ---
 
@@ -438,3 +434,13 @@ razorpay-ai-challenge/
 3. **Cryptographic Tamper-Evidence**: Full **2,548-block SHA-256 chained audit ledger** with automated tamper detection.
 4. **Three-Tier Resilient Classifier Cascade**: Tier 1 deterministic regex triage (<1ms) → Tier 2 OpenRouter LLM disambiguation (Qwen / DeepSeek / Gemini) → Tier 3 Human Ops quarantine. Operates 100% self-contained offline with zero external API dependencies required.
 5. **Production FinTech SaaS Design**: Enterprise light-theme UI with 5 dedicated views, live animated simulation controls, interactive chaos injection sandbox, NLU PTP extractor, and merchant ROI modeling.
+
+---
+
+## 🔒 Copyright & Contest Attribution
+
+**Author:** Harmit Jetani  
+**Submission:** Official Entry for Razorpay AI Challenge (Track 03: AI Revenue Recovery System)  
+**License:** © 2026 Harmit Jetani. All Rights Reserved. (See [`LICENSE`](LICENSE))
+
+> ⚠️ **Plagiarism & Provenance Notice:** All commit histories, cryptographic SHA-256 genesis hashes, dataset generators, and state machine architectures in this repository are timestamped and digitally watermarked. Unauthorized copying, mirroring, or re-submission is strictly prohibited.

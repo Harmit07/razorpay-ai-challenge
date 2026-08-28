@@ -1,0 +1,20 @@
+Copyright (c) 2026 Harmit Jetani. All Rights Reserved.
+
+This repository, software architecture, automated simulation pipeline, benchmark evaluators, 
+and associated documentation are the original work of Harmit Jetani, created specifically 
+as an official submission for the Razorpay AI Challenge (Track 03: AI Revenue Recovery System).
+
+1. PROPRIETARY & CONTEST SUBMISSION NOTICE:
+   No permission is granted to any unauthorized individual, organization, or contest participant 
+   to copy, distribute, modify, merge, publish, sublicense, mirror, or submit any part of this 
+   codebase, architecture, or documentation as another party's work or contest submission.
+
+2. EVALUATION RIGHTS:
+   Express permission is granted exclusively to the official organizers, judges, evaluators, 
+   and assessment committee of the Razorpay AI Challenge to inspect, test, benchmark, execute, 
+   and evaluate this software for official assessment and review purposes.
+
+3. PROVENANCE & DIGITAL WATERMARKING:
+   All architecture, dataset generators, 2,548-block SHA-256 cryptographic audit ledgers, 
+   and 9-state finite state machine implementations are timestamped and cryptographically 
+   verified via the immutable Git commit history of this repository.
