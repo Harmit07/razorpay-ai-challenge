@@ -298,16 +298,16 @@ Every regulatory guardrail is verified by dedicated automated tests that assert 
 
 | Test ID | Edge Case Scenario | Statutory / Engineering Invariant | Verified Refusal Outcome |
 | :--- | :--- | :--- | :--- |
-| **`EDGE-01`** | Zombie Retry Cap | Max 3 auto-debits within 14-day window. | **BLOCKED:** Throws `ComplianceViolationError`; transitions to `UNRECOVERABLE`. |
-| **`EDGE-02`** | [₹15,001 Standard AFA Cap](#rule-2-statutory-afa-caps) | Direct auto-debit > ₹15,000 prohibited ([RBI DPSS 2026](#rule-2-statutory-afa-caps)). | **BLOCKED:** Auto-debit refused; dynamic AFA OTP payment link dispatched. |
-| **`EDGE-03`** | [₹1,00,001 Exemption Straddle](#rule-2-statutory-afa-caps) | Mutual Funds / Insurance relaxed cap is ₹1,00,000. | **BLOCKED:** ₹1,00,001 auto-debit refused; converted to dynamic AFA OTP checkout link. |
-| **`EDGE-04`** | [Mandate Expiring in 24h](#rule-1-rbi-2026-e-mandate) | Mandate expires before cooling + retry window. | **BLOCKED:** Refuses auto-debit; dispatches instrument renewal link. |
-| **`EDGE-05`** | [TRAI Quiet Hours Violation](#rule-4-trai-quiet-hours) | Outbound customer touch at 11:30 PM IST. | **BLOCKED:** Instant send blocked; queued for release at 08:30 AM IST next morning. |
-| **`EDGE-06`** | [Promise-to-Pay (PTP) Grace Window](#rule-6-ptp-grace-window) | Customer committed to pay on Sept 5th. | **FROZEN:** Dunning touches quarantined in `PTP_FROZEN` state until Sept 6th. |
-| **`EDGE-07`** | [Revoked Mandate Debit](#rule-3-revoked-mandates-halted) | Customer cancelled mandate via bank portal. | **BLOCKED:** Permanent freeze (`STOP_MANDATE_REVOKED`); zero touches dispatched. |
-| **`EDGE-08`** | [Active Fraud Dispute / Chargeback](#rule-5-cpa-2019-dispute-lock) | Customer filed fraud dispute with issuing bank. | **BLOCKED:** Quarantined under CPA 2019 (`STOP_DISPUTE_FRAUD`); retries stopped. |
-| **`EDGE-09`** | [B2B MSMED 45-Day Boundary](#rule-8-msmed-act-2006) | Commercial invoice overdue approaching 45 days. | **ESCALATED:** Standard dunning halted; escalated directly to finance operations. |
-| **`EDGE-10`** | Raw Ambiguous Decline String | Bank returns unmapped unstructured string. | **DISAMBIGUATED:** Resolved via semantic engine without blocking merchant flow. |
+| **[`EDGE-01`](edge-cases.md#1-edge-01-the-zombie-retry-trap-customer-failing-5x-in-a-row)** | [Zombie Retry Cap (3x Ceiling)](edge-cases.md#1-edge-01-the-zombie-retry-trap-customer-failing-5x-in-a-row) | Max 3 auto-debits within 14-day window. | **BLOCKED:** Throws `ComplianceViolationError`; transitions to `UNRECOVERABLE`. |
+| **[`EDGE-02`](edge-cases.md#2-edge-02-the-15000-afa-straddle-1500100-standard-subscription)** | [₹15,001 Standard AFA Cap](edge-cases.md#2-edge-02-the-15000-afa-straddle-1500100-standard-subscription) | Direct auto-debit > ₹15,000 prohibited ([RBI DPSS 2026](#rule-2-statutory-afa-caps)). | **BLOCKED:** Auto-debit refused; dynamic AFA OTP payment link dispatched. |
+| **[`EDGE-03`](edge-cases.md#3-edge-03-the-100000-exemption-straddle-10000100-mutual-fund-sip)** | [₹1,00,001 Exemption Straddle](edge-cases.md#3-edge-03-the-100000-exemption-straddle-10000100-mutual-fund-sip) | Mutual Funds / Insurance relaxed cap is ₹1,00,000 ([RBI Amendment 2023](#rule-2-statutory-afa-caps)). | **BLOCKED:** ₹1,00,001 auto-debit refused; converted to dynamic AFA OTP checkout link. |
+| **[`EDGE-04`](edge-cases.md#4-edge-04-mandate-expiring-mid-retry)** | [Mandate Expiring in 24h](edge-cases.md#4-edge-04-mandate-expiring-mid-retry) | Mandate expires before cooling + retry window ([RBI E-Mandate](#rule-1-rbi-2026-e-mandate)). | **BLOCKED:** Refuses auto-debit; dispatches instrument renewal link. |
+| **[`EDGE-05`](edge-cases.md#5-edge-05-trai-quiet-hours-sleep-trap)** | [TRAI Quiet Hours Violation](edge-cases.md#5-edge-05-trai-quiet-hours-sleep-trap) | Outbound customer touch at 11:30 PM IST ([TRAI TCCCPR 2018](#rule-4-trai-quiet-hours)). | **BLOCKED:** Instant send blocked; queued for release at 08:30 AM IST next morning. |
+| **[`EDGE-06`](edge-cases.md#6-edge-06-promise-to-pay-ptp-race-condition)** | [Promise-to-Pay (PTP) Grace Window](edge-cases.md#6-edge-06-promise-to-pay-ptp-race-condition) | Customer committed to pay on Sept 5th ([PTP Policy](#rule-6-ptp-grace-window)). | **FROZEN:** Dunning touches quarantined in `PTP_FROZEN` state until Sept 6th. |
+| **[`EDGE-07`](edge-cases.md#7-edge-07-post-failure-mandate-revocation)** | [Revoked Mandate Debit](edge-cases.md#7-edge-07-post-failure-mandate-revocation) | Customer cancelled mandate via bank portal ([RBI Mandate Rules](#rule-3-revoked-mandates-halted)). | **BLOCKED:** Permanent freeze (`STOP_MANDATE_REVOKED`); zero touches dispatched. |
+| **[`EDGE-08`](edge-cases.md#8-edge-08-active-fraud-dispute--chargeback)** | [Active Fraud Dispute / Chargeback](edge-cases.md#8-edge-08-active-fraud-dispute--chargeback) | Customer filed fraud dispute with issuing bank ([CPA 2019](#rule-5-cpa-2019-dispute-lock)). | **BLOCKED:** Quarantined under CPA 2019 (`STOP_DISPUTE_FRAUD`); retries stopped. |
+| **[`EDGE-09`](edge-cases.md#9-edge-09-msmed-45-day-statutory-clash)** | [B2B MSMED 45-Day Boundary](edge-cases.md#9-edge-09-msmed-45-day-statutory-clash) | Commercial invoice overdue approaching 45 days ([MSMED Act 2006](#rule-8-msmed-act-2006)). | **ESCALATED:** Standard dunning halted; escalated directly to finance operations. |
+| **[`EDGE-10`](edge-cases.md#10-edge-10-unmapped-decline-with-risk-flag)** | [Raw Ambiguous Decline String](edge-cases.md#10-edge-10-unmapped-decline-with-risk-flag) | Bank returns unmapped unstructured string ([13-Bucket Taxonomy](root-cause-taxonomy.md)). | **DISAMBIGUATED:** Resolved via semantic engine without blocking merchant flow. |
 
 ---
 
@@ -374,10 +374,10 @@ razorpay-ai-challenge/
 ├── data/                             # Generated Audit Trails & Benchmark JSON
 │   ├── full_batch_audit_trail.json   # 2,548 SHA-256 hash-chained audit blocks
 │   └── comparative_benchmark_results.json
-├── compliance-rules.md               # Codified statutory compliance specification
-├── root-cause-taxonomy.md            # 13-Bucket failure taxonomy specification
-├── edge-cases.md                     # 10 Mission-critical edge cases specification
-└── classifier-notes.md               # Triage precision & audit logs
+├── [compliance-rules.md](compliance-rules.md)               # Codified statutory compliance specification
+├── [root-cause-taxonomy.md](root-cause-taxonomy.md)            # 13-Bucket failure taxonomy specification
+├── [edge-cases.md](edge-cases.md)                     # 10 Mission-critical edge cases specification
+└── [classifier-notes.md](classifier-notes.md)               # Triage precision & audit logs
 ```
 
 ---
