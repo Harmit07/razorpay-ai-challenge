@@ -180,42 +180,42 @@ flowchart TD
     %% ─────────────────────────────────────────────────────────────
     %% INITIAL INGESTION & DIAGNOSIS
     %% ─────────────────────────────────────────────────────────────
-    START(("●")) -->|Webhook / Telemetry Ingestion| DETECTED["<b>1. DETECTED</b><br/><sub>Ingest Gateway Payload / Telemetry</sub>"]
-    DETECTED -->|Ingest Payload & Classify Error| DIAGNOSING["<b>2. DIAGNOSING</b><br/><sub>Root Cause Classification & Triage</sub>"]
+    START(("●")) -->|"Webhook / Telemetry Ingestion"| DETECTED["<b>1. DETECTED</b><br/><sub>Ingest Gateway Payload / Telemetry</sub>"]
+    DETECTED -->|"Ingest Payload & Classify Error"| DIAGNOSING["<b>2. DIAGNOSING</b><br/><sub>Root Cause Classification & Triage</sub>"]
 
     %% ─────────────────────────────────────────────────────────────
     %% TRIAGE TRANSITIONS
     %% ─────────────────────────────────────────────────────────────
-    DIAGNOSING -->|"Soft Failure / AFA Link Scheduled<br/>(Confidence ≥ 0.85)"| ACTION_SCHEDULED["<b>3. ACTION_SCHEDULED</b><br/><sub>24h Pre-Debit Notice & 48h Cooling Queued</sub>"]
-    DIAGNOSING -->|"Low Confidence < 0.70 / Risk Flag"| HUMAN_REVIEW["<b>4. HUMAN_REVIEW</b><br/><sub>Manual Operations Review Queue</sub>"]
-    DIAGNOSING -->|"Terminal Hard Stop<br/>(Revoked / Dispute / Opt-Out)"| UNRECOVERABLE["<b>9. UNRECOVERABLE 🛑</b><br/><sub>Permanent Quarantine & Stopping Rule</sub>"]
+    DIAGNOSING -->|"Soft Failure / AFA Link Scheduled (Conf ≥ 0.85)"| ACTION_SCHEDULED["<b>3. ACTION_SCHEDULED</b><br/><sub>24h Pre-Debit Notice & 48h Cooling Queued</sub>"]
+    DIAGNOSING -->|"Low Confidence (under 0.70) / Risk Flag"| HUMAN_REVIEW["<b>4. HUMAN_REVIEW</b><br/><sub>Manual Operations Review Queue</sub>"]
+    DIAGNOSING -->|"Terminal Hard Stop (Revoked / Dispute / Opt-Out)"| UNRECOVERABLE["<b>9. UNRECOVERABLE 🛑</b><br/><sub>Permanent Quarantine & Stopping Rule</sub>"]
 
     %% ─────────────────────────────────────────────────────────────
     %% HUMAN REVIEW BRANCHES
     %% ─────────────────────────────────────────────────────────────
-    HUMAN_REVIEW -->|Operator Approved| ACTION_SCHEDULED
-    HUMAN_REVIEW -->|Operator Rejected / Blocked| UNRECOVERABLE
+    HUMAN_REVIEW -->|"Operator Approved"| ACTION_SCHEDULED
+    HUMAN_REVIEW -->|"Operator Rejected / Blocked"| UNRECOVERABLE
 
     %% ─────────────────────────────────────────────────────────────
     %% RETRY EXECUTION & MULTI-RAIL ADAPTATION
     %% ─────────────────────────────────────────────────────────────
-    ACTION_SCHEDULED -->|24h Notice Window & 48h Cooling Elapsed| RETRYING["<b>5. RETRYING</b><br/><sub>Smart Auto-Debit / Salary Snap Execution</sub>"]
+    ACTION_SCHEDULED -->|"24h Notice Window & 48h Cooling Elapsed"| RETRYING["<b>5. RETRYING</b><br/><sub>Smart Auto-Debit / Salary Snap Execution</sub>"]
 
-    RETRYING -->|Payment Succeeded (STOP_PAID)| RECOVERED["<b>8. RECOVERED 🚀</b><br/><sub>Settled & Queue Purged (Terminal Success)</sub>"]
-    RETRYING -->|"Soft Failure Attempt #1<br/>(Requeue + 48h Cooling)"| ACTION_SCHEDULED
-    RETRYING -->|"Soft Failure Attempt #2<br/>(Digital Nudge + Cooling)"| RETRYING
-    RETRYING -->|"Soft Failure Attempt #3<br/>(Debit Cap: Handoff to Voice Bot)"| ESCALATED["<b>6. ESCALATED</b><br/><sub>Empathetic Hinglish Voice Bot Outreach</sub>"]
-    RETRYING -->|Customer Opt-Out (STOP_OPT_OUT)| UNRECOVERABLE
+    RETRYING -->|"Payment Succeeded (STOP_PAID)"| RECOVERED["<b>8. RECOVERED 🚀</b><br/><sub>Settled & Queue Purged (Terminal Success)</sub>"]
+    RETRYING -->|"Soft Failure Attempt #1 (Requeue + 48h Cooling)"| ACTION_SCHEDULED
+    RETRYING -->|"Soft Failure Attempt #2 (Digital Nudge + Cooling)"| RETRYING
+    RETRYING -->|"Soft Failure Attempt #3 (Debit Cap: Voice Bot)"| ESCALATED["<b>6. ESCALATED</b><br/><sub>Empathetic Hinglish Voice Bot Outreach</sub>"]
+    RETRYING -->|"Customer Opt-Out (STOP_OPT_OUT)"| UNRECOVERABLE
 
     %% ─────────────────────────────────────────────────────────────
     %% VOICE ESCALATION & PTP GRACE WINDOW
     %% ─────────────────────────────────────────────────────────────
-    ESCALATED -->|"Promise-to-Pay Date Locked<br/>(STOP_PTP_ACTIVE)"| PTP_FROZEN["<b>7. PTP_FROZEN</b><br/><sub>Outreach Frozen in Grace Window</sub>"]
-    ESCALATED -->|Paid via Call Link (STOP_PAID)| RECOVERED
-    ESCALATED -->|Outreach Exhausted / 14-Day Limit| UNRECOVERABLE
+    ESCALATED -->|"Promise-to-Pay Date Locked (STOP_PTP_ACTIVE)"| PTP_FROZEN["<b>7. PTP_FROZEN</b><br/><sub>Outreach Frozen in Grace Window</sub>"]
+    ESCALATED -->|"Paid via Call Link (STOP_PAID)"| RECOVERED
+    ESCALATED -->|"Outreach Exhausted / 14-Day Limit"| UNRECOVERABLE
 
-    PTP_FROZEN -->|Paid During Grace Window (STOP_PAID)| RECOVERED
-    PTP_FROZEN -->|Grace Window Expired Unpaid| RETRYING
+    PTP_FROZEN -->|"Paid During Grace Window (STOP_PAID)"| RECOVERED
+    PTP_FROZEN -->|"Grace Window Expired Unpaid"| RETRYING
 
     %% ─────────────────────────────────────────────────────────────
     %% TERMINAL EXITS
