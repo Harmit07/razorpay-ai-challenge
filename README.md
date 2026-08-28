@@ -1,10 +1,10 @@
 # ⚡ Autonomous AI Revenue Recovery Platform
 > **"Find revenue that’s slipping away and win it back — with mathematical precision and zero regulatory risk."**
 
-[![Test Suite](https://img.shields.io/badge/Unit%20Tests-71%20Passing%20(0.18s)-success.svg)](file:///Users/harmitjetani/Documents/GitHub/razorpay-ai-challenge/tests)
-[![Cryptographic Ledger](https://img.shields.io/badge/Audit%20Ledger-SHA--256%20Chained%20(2%2C548%20Blocks)-blue.svg)](file:///Users/harmitjetani/Documents/GitHub/razorpay-ai-challenge/data/full_batch_audit_trail.json)
-[![Regulatory Compliance](https://img.shields.io/badge/Compliance-100%25%20Statutory%20Safe%20(0%20Violations)-success.svg)](file:///Users/harmitjetani/Documents/GitHub/razorpay-ai-challenge/compliance-rules.md)
-[![Measured Recovery Lift](https://img.shields.io/badge/Measured%20Lift-%2B164.2%25%20vs%20Baseline-success.svg)](file:///Users/harmitjetani/Documents/GitHub/razorpay-ai-challenge/data/comparative_benchmark_results.json)
+[![Test Suite](https://img.shields.io/badge/Unit%20Tests-71%20Passing%20(0.18s)-success.svg)](tests/)
+[![Cryptographic Ledger](https://img.shields.io/badge/Audit%20Ledger-SHA--256%20Chained%20(2%2C548%20Blocks)-blue.svg)](data/full_batch_audit_trail.json)
+[![Regulatory Compliance](https://img.shields.io/badge/Compliance-100%25%20Statutory%20Safe%20(0%20Violations)-success.svg)](compliance-rules.md)
+[![Measured Recovery Lift](https://img.shields.io/badge/Measured%20Lift-%2B164.2%25%20vs%20Baseline-success.svg)](data/comparative_benchmark_results.json)
 
 ---
 
@@ -26,11 +26,14 @@ Our platform acts as a **smart, statutory-compliant revenue recovery orchestrato
 
 ---
 
-## ⚡ 5-Second Quickstart
+## ⚡ Quickstart
 
 ```bash
+# Optional: Set OpenRouter API key for live LLM cascade evaluation (works 100% offline without key)
+export OPENROUTER_API_KEY="your-openrouter-key"
+
 # 1. Launch the Live Enterprise FinTech SaaS Dashboard
-python3 app/server.py
+python3 app/server.py 8888
 # 👉 Open http://localhost:8888 in your browser
 
 # 2. Run the Interactive Single-Transaction Recovery Simulation Demo
@@ -39,8 +42,12 @@ python3 scripts/run_single_recovery_demo.py
 # 3. Run the Full 750-Transaction Head-to-Head Comparative Benchmark
 python3 scripts/run_comparative_benchmark.py
 
-# 4. Run the Complete Automated Test Suite (71 Tests Passing in ~0.18s)
-python3 -m unittest discover -s tests
+# 4. Generate Executive Regulatory PDF Audit Report
+python3 scripts/generate_pdf_report.py
+
+# 5. Run the Complete Automated Test Suite (71 Tests Passing in ~0.18s)
+pytest
+# or: python3 -m unittest discover -s tests
 ```
 
 ---
@@ -308,16 +315,21 @@ Every regulatory guardrail is verified by dedicated automated tests that assert 
 
 The web application is built with a **Clean Light-Theme Enterprise FinTech SaaS Design System** inspired by Stripe, Linear, and Vercel:
 
-1. **Multi-Page Dedicated Hash Routing**:
-   * **[Overview (`#overview`)](http://localhost:8888/#overview)**: Top KPIs, **Live Chaos Sandbox**, and the **Interactive Merchant ROI Calculator**.
-   * **[Benchmark (`#benchmark`)](http://localhost:8888/#benchmark)**: Comparative bar charts, 14-day metric tables, and safeguard breakdowns.
-   * **[Audit Explorer (`#transactions`)](http://localhost:8888/#transactions)**: 6-column fluid table with search, test-case filters, zero horizontal scroll, and SHA-256 block inspection drawer.
-   * **[Compliance Rules (`#rules`)](http://localhost:8888/#rules)**: The 6 codified Indian statutory regulatory frameworks.
+1. **Multi-Page Dedicated Hash Routing (5 Core Views)**:
+   * **[Overview (`#overview`)](http://localhost:8888/#overview)**: Top KPIs, **Live Chaos Injection Sandbox**, and the **Interactive Merchant ROI Calculator**.
+   * **[Benchmark (`#benchmark`)](http://localhost:8888/#benchmark)**: Comparative recovery charts, 14-day metric tables, and statutory safeguard breakdowns.
+   * **[Diagnostic Sandbox (`#playground`)](http://localhost:8888/#playground)**:
+     - **Live Decline Triage & LLM Disambiguation**: Test arbitrary error text against the 3-tier cascade in real time.
+     - **NLU Promise-to-Pay (PTP) Extractor**: Extract conversational PTP dates, amounts, and freeze rules from English/Hinglish transcripts.
+   * **[Audit Explorer (`#transactions`)](http://localhost:8888/#transactions)**: 6-column fluid table with search, edge-case filters, zero horizontal scroll, and SHA-256 block inspection drawer.
+   * **[Compliance Rules (`#rules`)](http://localhost:8888/#rules)**: Interactive codification of the 6 Indian statutory regulatory frameworks.
 2. **Interactive Live Animated Simulation Runner**:
    * Click **"Run Demo"** to watch the state machine ingest, diagnose, fast-forward virtual time, negotiate a Hinglish voice PTP, and compliantly settle ₹4,999.00 in real time.
-3. **Draggable & Collapsible Sidebar**:
-   * Drag the vertical handle to adjust width between `200px` and `420px`, or click `◀` to collapse into icon mode.
-4. **Interactive Merchant ROI Calculator**:
+3. **One-Click Regulatory PDF Report Generation**:
+   * Export the entire 750-transaction compliance audit trail or single-transaction records as formatted executive PDF reports directly from the UI header or via `scripts/generate_pdf_report.py`.
+4. **Draggable & Collapsible Sidebar**:
+   * Drag the vertical handle to adjust width between `180px` and `420px`, or click `◀` to collapse into icon mode with persistent preference.
+5. **Interactive Merchant ROI Calculator**:
    * Move GMV (₹1 Cr – ₹100 Cr) and failure rate sliders to project annual recovered revenue and regulatory fines avoided.
 
 ---
@@ -327,14 +339,16 @@ The web application is built with a **Clean Light-Theme Enterprise FinTech SaaS 
 ```
 razorpay-ai-challenge/
 ├── app/                              # Enterprise FinTech SaaS Dashboard
-│   ├── index.html                    # 4-View multi-page application layout
+│   ├── index.html                    # 5-View multi-page application layout
 │   ├── styles.css                    # FinTech design system tokens (Light theme)
 │   ├── app.js                        # Frontend controller, routing, & simulation runner
 │   ├── server.py                     # Dedicated API & dashboard HTTP server (Port 8888)
 │   └── dashboard.py                  # Streamlit dashboard
 ├── src/                              # Core Autonomous Agent Architecture
+│   ├── config/                       # Codified regulatory rules & economic constants
+│   │   └── regulatory_rules.py       # AFA caps, TRAI quiet hours, MSMED penal interest
 │   ├── models/                       # Pydantic v2 domain schemas & computed fields
-│   ├── classifiers/                  # Rule classifier & local semantic intent fallback
+│   ├── classifiers/                  # Deterministic rule classifier & LLM cascade fallback
 │   ├── router/                       # Dual-layer statutory compliance router
 │   ├── orchestrator/                 # 9-state FSM & batch execution pipeline
 │   ├── scheduler/                    # Simulated discrete-event clock scheduler
@@ -355,6 +369,7 @@ razorpay-ai-challenge/
 │   ├── run_single_recovery_demo.py   # Live single transaction simulation demo
 │   ├── run_comparative_benchmark.py  # Full 750-transaction benchmark runner
 │   ├── run_batch_simulation.py       # Full batch discrete-event simulation
+│   ├── generate_pdf_report.py        # Executive PDF audit report generator
 │   └── generate_dataset.py           # Batch dataset generator
 ├── data/                             # Generated Audit Trails & Benchmark JSON
 │   ├── full_batch_audit_trail.json   # 2,548 SHA-256 hash-chained audit blocks
@@ -372,5 +387,5 @@ razorpay-ai-challenge/
 1. **Volume & Measured Yield**: Tested across **750 real-world transactions / ₹2.28 Crore volume** achieving **+164.2% recovery lift (+₹33.75 Lakhs)**.
 2. **Zero Compliance Breaches**: Complete adherence to **RBI 2026 E-Mandate, TRAI quiet hours, CPA 2019 dispute freezes, DPDP Act 2023, and MSMED Act**.
 3. **Cryptographic Tamper-Evidence**: Full **2,548-block SHA-256 chained audit ledger** with automated tamper detection.
-4. **Resilient Offline Architecture**: 100% self-contained local engine with zero third-party API fragility or rate-limit failure risks during evaluations.
-5. **Production SaaS Design**: Enterprise light-theme UI with live simulation controls, interactive chaos injection sandbox, and merchant ROI modeling.
+4. **Three-Tier Resilient Classifier Cascade**: Tier 1 deterministic regex triage (<1ms) → Tier 2 OpenRouter LLM disambiguation (Qwen / DeepSeek / Gemini) → Tier 3 Human Ops quarantine. Operates 100% self-contained offline with zero external API dependencies required.
+5. **Production FinTech SaaS Design**: Enterprise light-theme UI with 5 dedicated views, live animated simulation controls, interactive chaos injection sandbox, NLU PTP extractor, and merchant ROI modeling.
