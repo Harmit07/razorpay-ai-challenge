@@ -178,50 +178,65 @@ The recovery engine enforces all statutory waiting periods, cooling-off interval
 ```mermaid
 flowchart TD
     %% ─────────────────────────────────────────────────────────────
-    %% INITIAL INGESTION & DIAGNOSIS
+    %% STAGE 1: INGESTION & DIAGNOSTIC TRIAGE
     %% ─────────────────────────────────────────────────────────────
-    START(("●")) -->|"Webhook / Telemetry Ingestion"| DETECTED["<b>1. DETECTED</b><br/><sub>Ingest Gateway Payload / Telemetry</sub>"]
-    DETECTED -->|"Ingest Payload & Classify Error"| DIAGNOSING["<b>2. DIAGNOSING</b><br/><sub>Root Cause Classification & Triage</sub>"]
+    subgraph S1 ["1. Ingestion & Diagnostic Triage"]
+        START(("●")) -->|"Gateway Webhook"| S_DETECTED["<b>1. DETECTED</b><br/><sub>Ingest Failure Payload</sub>"]
+        S_DETECTED -->|"Parse Error Model"| S_DIAG["<b>2. DIAGNOSING</b><br/><sub>Rule Engine & LLM Triage</sub>"]
+        S_DIAG -->|"Low Confidence (< 0.70)"| S_HUMAN["<b>4. HUMAN_REVIEW</b><br/><sub>Manual Ops Review Queue</sub>"]
+    end
 
     %% ─────────────────────────────────────────────────────────────
-    %% TRIAGE TRANSITIONS
+    %% STAGE 2: SCHEDULED NOTICE & AUTOMATED RETRIES
     %% ─────────────────────────────────────────────────────────────
-    DIAGNOSING -->|"Soft Failure / AFA Link Scheduled (Conf ≥ 0.85)"| ACTION_SCHEDULED["<b>3. ACTION_SCHEDULED</b><br/><sub>24h Pre-Debit Notice & 48h Cooling Queued</sub>"]
-    DIAGNOSING -->|"Low Confidence (under 0.70) / Risk Flag"| HUMAN_REVIEW["<b>4. HUMAN_REVIEW</b><br/><sub>Manual Operations Review Queue</sub>"]
-    DIAGNOSING -->|"Terminal Hard Stop (Revoked / Dispute / Opt-Out)"| UNRECOVERABLE["<b>9. UNRECOVERABLE 🛑</b><br/><sub>Permanent Quarantine & Stopping Rule</sub>"]
+    subgraph S2 ["2. Automated Recovery Ladder"]
+        S_SCHED["<b>3. ACTION_SCHEDULED</b><br/><sub>24h Notice & 48h Cooling Queued</sub>"]
+        S_RETRY["<b>5. RETRYING</b><br/><sub>Salary-Cycle Auto-Debit Execution</sub>"]
+        
+        S_SCHED -->|"Notice & Cooling Elapsed"| S_RETRY
+        S_RETRY -.->|"Attempt #1 Failed (Requeue)"| S_SCHED
+        S_RETRY -.->|"Attempt #2 Failed (Digital Nudge)"| S_RETRY
+    end
 
     %% ─────────────────────────────────────────────────────────────
-    %% HUMAN REVIEW BRANCHES
+    %% STAGE 3: VOICE ESCALATION & PROMISE-TO-PAY
     %% ─────────────────────────────────────────────────────────────
-    HUMAN_REVIEW -->|"Operator Approved"| ACTION_SCHEDULED
-    HUMAN_REVIEW -->|"Operator Rejected / Blocked"| UNRECOVERABLE
+    subgraph S3 ["3. Voice Negotiation & PTP Grace Window"]
+        S_ESCALATED["<b>6. ESCALATED</b><br/><sub>Hinglish Voice Bot Outreach</sub>"]
+        S_PTP["<b>7. PTP_FROZEN</b><br/><sub>Outreach Paused in Grace Window</sub>"]
+        
+        S_ESCALATED -->|"PTP Commitment Extracted"| S_PTP
+        S_PTP -.->|"Grace Expired Unpaid"| S_RETRY
+    end
 
     %% ─────────────────────────────────────────────────────────────
-    %% RETRY EXECUTION & MULTI-RAIL ADAPTATION
+    %% STAGE 4: TERMINAL OUTCOMES
     %% ─────────────────────────────────────────────────────────────
-    ACTION_SCHEDULED -->|"24h Notice Window & 48h Cooling Elapsed"| RETRYING["<b>5. RETRYING</b><br/><sub>Smart Auto-Debit / Salary Snap Execution</sub>"]
-
-    RETRYING -->|"Payment Succeeded (STOP_PAID)"| RECOVERED["<b>8. RECOVERED 🚀</b><br/><sub>Settled & Queue Purged (Terminal Success)</sub>"]
-    RETRYING -->|"Soft Failure Attempt #1 (Requeue + 48h Cooling)"| ACTION_SCHEDULED
-    RETRYING -->|"Soft Failure Attempt #2 (Digital Nudge + Cooling)"| RETRYING
-    RETRYING -->|"Soft Failure Attempt #3 (Debit Cap: Voice Bot)"| ESCALATED["<b>6. ESCALATED</b><br/><sub>Empathetic Hinglish Voice Bot Outreach</sub>"]
-    RETRYING -->|"Customer Opt-Out (STOP_OPT_OUT)"| UNRECOVERABLE
-
-    %% ─────────────────────────────────────────────────────────────
-    %% VOICE ESCALATION & PTP GRACE WINDOW
-    %% ─────────────────────────────────────────────────────────────
-    ESCALATED -->|"Promise-to-Pay Date Locked (STOP_PTP_ACTIVE)"| PTP_FROZEN["<b>7. PTP_FROZEN</b><br/><sub>Outreach Frozen in Grace Window</sub>"]
-    ESCALATED -->|"Paid via Call Link (STOP_PAID)"| RECOVERED
-    ESCALATED -->|"Outreach Exhausted / 14-Day Limit"| UNRECOVERABLE
-
-    PTP_FROZEN -->|"Paid During Grace Window (STOP_PAID)"| RECOVERED
-    PTP_FROZEN -->|"Grace Window Expired Unpaid"| RETRYING
+    subgraph S4 ["4. Terminal Outcomes"]
+        S_RECOVERED["<b>8. RECOVERED 🚀</b><br/><sub>Payment Succeeded (STOP_PAID)</sub>"]
+        S_UNREC["<b>9. UNRECOVERABLE 🛑</b><br/><sub>Quarantine / Opt-Out / Debt Expiry</sub>"]
+        
+        S_RECOVERED --> END_REC(("◎"))
+        S_UNREC --> END_UNREC(("◎"))
+    end
 
     %% ─────────────────────────────────────────────────────────────
-    %% TERMINAL EXITS
+    %% INTER-STAGE TRANSITIONS
     %% ─────────────────────────────────────────────────────────────
-    RECOVERED --> END_REC(("◎"))
-    UNRECOVERABLE --> END_UNREC(("◎"))
+    S_DIAG -->|"Soft Failure (Conf ≥ 0.85)"| S_SCHED
+    S_DIAG -->|"Hard Stop (Revoked / Dispute)"| S_UNREC
+
+    S_HUMAN -->|"Operator Approved"| S_SCHED
+    S_HUMAN -->|"Operator Rejected"| S_UNREC
+
+    S_RETRY -->|"Paid via Auto-Debit"| S_RECOVERED
+    S_RETRY -->|"Attempt #3 Failed (Debit Cap)"| S_ESCALATED
+    S_RETRY -->|"Customer Opt-Out"| S_UNREC
+
+    S_ESCALATED -->|"Paid via Call Link"| S_RECOVERED
+    S_ESCALATED -->|"Outreach Exhausted (14d)"| S_UNREC
+
+    S_PTP -->|"Paid During Grace Window"| S_RECOVERED
 
     %% ─────────────────────────────────────────────────────────────
     %% UI COLOR THEMING (SaaS Light & Dark Mode Compatible)
@@ -233,12 +248,12 @@ flowchart TD
     classDef success fill:#f0fdf4,stroke:#16a34a,stroke-width:2px,color:#14532d;
     classDef danger fill:#fef2f2,stroke:#dc2626,stroke-width:2px,color:#7f1d1d;
 
-    class DETECTED,DIAGNOSING initial;
-    class ACTION_SCHEDULED,RETRYING active;
-    class HUMAN_REVIEW purple;
-    class ESCALATED,PTP_FROZEN warning;
-    class RECOVERED success;
-    class UNRECOVERABLE danger;
+    class S_DETECTED,S_DIAG initial;
+    class S_SCHED,S_RETRY active;
+    class S_HUMAN purple;
+    class S_ESCALATED,S_PTP warning;
+    class S_RECOVERED success;
+    class S_UNREC danger;
 ```
 
 ---
