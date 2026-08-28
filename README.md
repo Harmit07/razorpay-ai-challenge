@@ -316,13 +316,13 @@ Every regulatory guardrail is verified by dedicated automated tests that assert 
 The web application is built with a **Clean Light-Theme Enterprise FinTech SaaS Design System** inspired by Stripe, Linear, and Vercel:
 
 1. **Multi-Page Dedicated Hash Routing (5 Core Views)**:
-   * **[Overview (`#overview`)](http://localhost:8888/#overview)**: Top KPIs, **Live Chaos Injection Sandbox**, and the **Interactive Merchant ROI Calculator**.
-   * **[Benchmark (`#benchmark`)](http://localhost:8888/#benchmark)**: Comparative recovery charts, 14-day metric tables, and statutory safeguard breakdowns.
-   * **[Diagnostic Sandbox (`#playground`)](http://localhost:8888/#playground)**:
+   * **Overview (`#overview`)**: Top KPIs, **Live Chaos Injection Sandbox**, and the **Interactive Merchant ROI Calculator**.
+   * **Benchmark (`#benchmark`)**: Comparative recovery charts, 14-day metric tables, and statutory safeguard breakdowns.
+   * **Diagnostic Sandbox (`#playground`)**:
      - **Live Decline Triage & LLM Disambiguation**: Test arbitrary error text against the 3-tier cascade in real time.
      - **NLU Promise-to-Pay (PTP) Extractor**: Extract conversational PTP dates, amounts, and freeze rules from English/Hinglish transcripts.
-   * **[Audit Explorer (`#transactions`)](http://localhost:8888/#transactions)**: 6-column fluid table with search, edge-case filters, zero horizontal scroll, and SHA-256 block inspection drawer.
-   * **[Compliance Rules (`#rules`)](http://localhost:8888/#rules)**: Interactive codification of the 6 Indian statutory regulatory frameworks.
+   * **Audit Explorer (`#transactions`)**: 6-column fluid table with search, edge-case filters, zero horizontal scroll, and SHA-256 block inspection drawer.
+   * **Compliance Rules (`#rules`)**: Interactive codification of the 6 Indian statutory regulatory frameworks.
 2. **Interactive Live Animated Simulation Runner**:
    * Click **"Run Demo"** to watch the state machine ingest, diagnose, fast-forward virtual time, negotiate a Hinglish voice PTP, and compliantly settle ₹4,999.00 in real time.
 3. **One-Click Regulatory PDF Report Generation**:
