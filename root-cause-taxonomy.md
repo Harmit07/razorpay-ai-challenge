@@ -482,14 +482,3 @@ def classify_and_route_error(error_event: Dict[str, Any], current_time: datetime
         delay_until_0805_ist=delay_dispatch
     )
 ```
-
----
-
-## 6. Verification Checklist
-
-- [x] Based on Razorpay's official `source`, `step`, and `reason` error model.
-- [x] Covers 12 distinct concrete error buckets across customer, gateway, bank, and network origins.
-- [x] Includes 10 real-world production edge cases (Zombie payments, salary cycle traps, race conditions, MSMED 45-day clashes, partial payments, quiet hours).
-- [x] Clear binary tagging: `Retryable: YES (Soft)` vs `Retryable: NO (Hard / Statutory Stop)`.
-- [x] Compliant intervention specified for each bucket (upholding 24h pre-debit alert, cooling intervals, AFA caps, and DPDP/CCPA rules).
-- [x] Includes updated Python decision engine with edge case safety guards.
