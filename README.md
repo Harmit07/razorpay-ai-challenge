@@ -421,8 +421,7 @@ razorpay-ai-challenge/
 ├── compliance-rules.md               # Codified statutory compliance specification
 ├── root-cause-taxonomy.md            # 13-Bucket failure taxonomy specification
 ├── edge-cases.md                     # 10 Mission-critical edge cases specification
-├── classifier-notes.md               # Triage precision & audit logs
-└── LICENSE                           # Proprietary contest submission & copyright terms
+└── classifier-notes.md               # Triage precision & audit logs
 ```
 
 ---
@@ -439,6 +438,5 @@ razorpay-ai-challenge/
 
 **Author:** Harmit Jetani  
 **Submission:** Official Entry for Razorpay AI Challenge (Track 03: AI Revenue Recovery System)  
-**License:** © 2026 Harmit Jetani. All Rights Reserved. (See [`LICENSE`](LICENSE))
 
 > ⚠️ **Plagiarism & Provenance Notice:** All commit histories, cryptographic SHA-256 genesis hashes, dataset generators, and state machine architectures in this repository are timestamped and digitally watermarked. Unauthorized copying, mirroring, or re-submission is strictly prohibited.
