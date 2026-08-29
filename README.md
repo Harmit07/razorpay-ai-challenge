@@ -418,10 +418,11 @@ razorpay-ai-challenge/
 ├── data/                             # Generated Audit Trails & Benchmark JSON
 │   ├── full_batch_audit_trail.json   # 2,548 SHA-256 hash-chained audit blocks
 │   └── comparative_benchmark_results.json
-├── [compliance-rules.md](compliance-rules.md)               # Codified statutory compliance specification
-├── [root-cause-taxonomy.md](root-cause-taxonomy.md)            # 13-Bucket failure taxonomy specification
-├── [edge-cases.md](edge-cases.md)                     # 10 Mission-critical edge cases specification
-└── [classifier-notes.md](classifier-notes.md)               # Triage precision & audit logs
+├── compliance-rules.md               # Codified statutory compliance specification
+├── root-cause-taxonomy.md            # 13-Bucket failure taxonomy specification
+├── edge-cases.md                     # 10 Mission-critical edge cases specification
+├── classifier-notes.md               # Triage precision & audit logs
+└── LICENSE                           # Proprietary contest submission & copyright terms
 ```
 
 ---
