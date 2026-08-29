@@ -181,17 +181,17 @@ flowchart TD
     %% STAGE 1: INGESTION & DIAGNOSTIC TRIAGE
     %% ─────────────────────────────────────────────────────────────
     subgraph S1 ["1. Ingestion & Diagnostic Triage"]
-        START(("●")) -->|"Gateway Webhook"| S_DETECTED["<b>1. DETECTED</b><br/><sub>Ingest Failure Payload</sub>"]
-        S_DETECTED -->|"Parse Error Model"| S_DIAG["<b>2. DIAGNOSING</b><br/><sub>Rule Engine & LLM Triage</sub>"]
-        S_DIAG -->|"Low Confidence (< 0.70)"| S_HUMAN["<b>4. HUMAN_REVIEW</b><br/><sub>Manual Ops Review Queue</sub>"]
+        START(((Start))) -->|"Gateway Webhook"| S_DETECTED["1. DETECTED\nIngest Failure Payload"]
+        S_DETECTED -->|"Parse Error Model"| S_DIAG["2. DIAGNOSING\nRule Engine & LLM Triage"]
+        S_DIAG -->|"Low Confidence (< 0.70)"| S_HUMAN["4. HUMAN_REVIEW\nManual Ops Review Queue"]
     end
 
     %% ─────────────────────────────────────────────────────────────
     %% STAGE 2: SCHEDULED NOTICE & AUTOMATED RETRIES
     %% ─────────────────────────────────────────────────────────────
     subgraph S2 ["2. Automated Recovery Ladder"]
-        S_SCHED["<b>3. ACTION_SCHEDULED</b><br/><sub>24h Notice & 48h Cooling Queued</sub>"]
-        S_RETRY["<b>5. RETRYING</b><br/><sub>Salary-Cycle Auto-Debit Execution</sub>"]
+        S_SCHED["3. ACTION_SCHEDULED\n24h Notice & 48h Cooling Queued"]
+        S_RETRY["5. RETRYING\nSalary-Cycle Auto-Debit Execution"]
         
         S_SCHED -->|"Notice & Cooling Elapsed"| S_RETRY
         S_RETRY -.->|"Attempt #1 Failed (Requeue)"| S_SCHED
@@ -202,8 +202,8 @@ flowchart TD
     %% STAGE 3: VOICE ESCALATION & PROMISE-TO-PAY
     %% ─────────────────────────────────────────────────────────────
     subgraph S3 ["3. Voice Negotiation & PTP Grace Window"]
-        S_ESCALATED["<b>6. ESCALATED</b><br/><sub>Hinglish Voice Bot Outreach</sub>"]
-        S_PTP["<b>7. PTP_FROZEN</b><br/><sub>Outreach Paused in Grace Window</sub>"]
+        S_ESCALATED["6. ESCALATED\nHinglish Voice Bot Outreach"]
+        S_PTP["7. PTP_FROZEN\nOutreach Paused in Grace Window"]
         
         S_ESCALATED -->|"PTP Commitment Extracted"| S_PTP
         S_PTP -.->|"Grace Expired Unpaid"| S_RETRY
@@ -213,11 +213,11 @@ flowchart TD
     %% STAGE 4: TERMINAL OUTCOMES
     %% ─────────────────────────────────────────────────────────────
     subgraph S4 ["4. Terminal Outcomes"]
-        S_RECOVERED["<b>8. RECOVERED 🚀</b><br/><sub>Payment Succeeded (STOP_PAID)</sub>"]
-        S_UNREC["<b>9. UNRECOVERABLE 🛑</b><br/><sub>Quarantine / Opt-Out / Debt Expiry</sub>"]
+        S_RECOVERED["8. RECOVERED 🚀\nPayment Succeeded (STOP_PAID)"]
+        S_UNREC["9. UNRECOVERABLE 🛑\nQuarantine / Opt-Out / Debt Expiry"]
         
-        S_RECOVERED --> END_REC(("◎"))
-        S_UNREC --> END_UNREC(("◎"))
+        S_RECOVERED --> END_REC(((End)))
+        S_UNREC --> END_UNREC(((End)))
     end
 
     %% ─────────────────────────────────────────────────────────────
