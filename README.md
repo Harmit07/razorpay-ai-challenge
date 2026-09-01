@@ -19,9 +19,9 @@ This naive approach creates two fatal problems:
 ### The Solution: Autonomous AI Revenue Recovery Agent
 Our platform acts as a **smart, statutory-compliant revenue recovery orchestrator**:
 * **Diagnoses Root Cause**: Two-tier classifier mapping failure codes (Razorpay source/step/reason model) + local semantic intent engine for ambiguous bank text.
-* **Mathematical Expected Value (EV) Policy**: Intervenes only when **EV = (P_recover × Amount) - Channel Cost - Annoyance Penalty > 0**.
+* **Autonomous LLM Decision Agent (P0)**: `RecoveryDecisionAgent` evaluates candidate recovery actions, generates mathematical EV justifications, and outputs human-auditable reasoning via an OpenRouter cascade (Gemini 2.5 Flash / Llama 4 Scout / DeepSeek R1).
 * **Dual-Layer Statutory Invariants**: Programmatically guarantees 100% compliance with [RBI](#rule-1-rbi-2026-e-mandate), [TRAI](#rule-4-trai-quiet-hours), [CPA 2019](#rule-5-cpa-2019-dispute-lock), and [DPDP Act 2023](#rule-7-dpdp-act-2023).
-* **Multi-Rail Smart Recovery**: Coordinates 48h cooling intervals, salary-cycle snapping (1st–5th / 25th–30th), dynamic AFA OTP payment links, WhatsApp 1-click UPI intent, and empathetic Hinglish voice recovery bots with [Promise-to-Pay (PTP) freezing](#rule-6-ptp-grace-window).
+* **Multi-Rail Smart Recovery**: Coordinates 48h cooling intervals, salary-cycle snapping (1st–5th / 25th–30th), dynamic AFA OTP payment links, WhatsApp 1-click UPI intent, 3-step checkout drop-off drip recovery (WhatsApp → Email → SMS), and empathetic Hinglish voice recovery bots with [Promise-to-Pay (PTP) freezing](#rule-6-ptp-grace-window).
 * **Blockchain-Grade Cryptographic Audit Ledger**: Every decision produces a tamper-evident, [SHA-256 hash-chained audit record](#rule-9-cryptographic-audit-ledger).
 
 ---
@@ -366,15 +366,20 @@ The web application is built with a **Clean Light-Theme Enterprise FinTech SaaS 
 
 1. **Multi-Page Dedicated Hash Routing (5 Core Views)**:
    * **Overview (`#overview`)**: Top KPIs, **Live Chaos Injection Sandbox**, and the **Interactive Merchant ROI Calculator** (GMV ₹1 Cr–₹100 Cr).
-   * **Benchmark (`#benchmark`)**: Comparative recovery charts, 14-day metric tables, and statutory safeguard breakdowns.
+   * **Benchmark (`#benchmark`)**: **Interactive Retina/HiDPI cumulative recovery time-series chart** with crosshair hover tooltips, 14-day daily recovery curves, and statutory safeguard comparisons.
    * **Diagnostic Sandbox (`#playground`)**:
-     - **Live Decline Triage & LLM Disambiguation**: Test arbitrary error text against the 3-tier cascade in real time.
+     - **Live Decline Triage & LLM Decision Agent**: Test arbitrary error text against the classifier and see live **AI Agent Reasoning**, model attribution, and EV justifications.
      - **NLU Promise-to-Pay (PTP) Extractor**: Extract conversational PTP dates, amounts, and freeze rules from English/Hinglish transcripts.
-   * **Audit Explorer (`#transactions`)**: 6-column fluid table with search, edge-case filters, zero horizontal scroll, and SHA-256 block inspection drawer.
+   * **Audit Explorer (`#transactions`)**: Fluid audit table with search, edge-case filters, **Decision Chain badges** (`[Bucket N] → [ACTION] → [OUTCOME]`), zero horizontal scroll, and SHA-256 block inspection drawer.
    * **Compliance Rules (`#rules`)**: Interactive codification of the 6 Indian statutory regulatory frameworks.
 2. **Interactive Live Animated Simulation Runner & State Reset**:
-   * Click **"Run Simulation"** to watch the state machine ingest, diagnose, fast-forward virtual time, negotiate a Hinglish voice PTP, and compliantly settle ₹4,999.00 in real time. Click **"Reset Simulation"** to return to standby anytime.
-3. **One-Click Regulatory PDF Report Generation**:
+   * Click **"Run Simulation"** to execute the live in-process FSM (`POST /api/simulate/live`) with real-time progressive state animations, live LLM agent reasoning badges, and instant metric recalculation. Click **"Reset Simulation"** to return to standby anytime.
+3. **Dedicated REST API Endpoints**:
+   * `POST /api/agent/decide` — Standalone AI Agent decision engine with EV justification and model cascade.
+   * `POST /api/simulate/live` — In-process FSM execution with step-by-step state reporting.
+   * `POST /api/diagnose/live` — Live diagnosis, compliance invariant validation, and action plan routing.
+   * `GET /api/benchmark` — Complete 14-day time-series data and comparative benchmark metrics.
+4. **One-Click Regulatory PDF Report Generation**:
    * Export the entire 750-transaction compliance audit trail or single-transaction records as formatted executive PDF reports directly from the UI header or via `scripts/generate_pdf_report.py`.
 
 ---
@@ -389,11 +394,13 @@ razorpay-ai-challenge/
 │   ├── app.js                        # Frontend controller, routing, & simulation runner
 │   └── server.py                     # Dedicated API & dashboard HTTP server (Port 8888)
 ├── src/                              # Core Autonomous Agent Architecture
+│   ├── agent/                        # AI Recovery Decision Agent & LLM Reasoning Engine
+│   │   └── recovery_agent.py         # Multi-model cascade (Gemini 2.5 Flash, Llama 4, DeepSeek)
 │   ├── config/                       # Codified regulatory rules & economic constants
 │   │   └── regulatory_rules.py       # AFA caps, TRAI quiet hours, MSMED penal interest
 │   ├── models/                       # Pydantic v2 domain schemas & computed fields
 │   ├── classifiers/                  # Deterministic rule classifier & LLM cascade fallback
-│   ├── router/                       # Dual-layer statutory compliance router
+│   ├── router/                       # Dual-layer statutory compliance router & checkout drip
 │   ├── orchestrator/                 # 9-state FSM & batch execution pipeline
 │   ├── scheduler/                    # Simulated discrete-event clock scheduler
 │   ├── audit/                        # SHA-256 hash-chained cryptographic audit logger
