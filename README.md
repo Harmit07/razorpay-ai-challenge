@@ -83,19 +83,26 @@ flowchart TD
     end
 
     %% CLASSIFIER
-    subgraph S2 ["2. Diagnostic Engine & Triage (Two-Stage)"]
+    subgraph S2 ["2. Diagnostic Engine & Root Cause Triage"]
         PARSE["Razorpay Error Model Parser<br/>(source / step / reason)"]
-        STAGE1{"Deterministic Rule Classifier<br/>(Confidence >= 0.85)"}
+        STAGE1{"Deterministic Rule Classifier<br/>(13-Bucket Taxonomy)"}
         
         SOFT["Soft Liquidity Failure<br/>(insufficient_funds, bank_server_down)"]
         HARD["Hard Failure / Terminal<br/>(card_expired, mandate_revoked)"]
+        CART["Checkout Drop-Off<br/>(abandoned_cart, payment_dropped)"]
         
-        LLM_PARSER["Semantic Intent Engine<br/>• Raw unmapped decline disambiguation<br/>• Promise-to-Pay (PTP) extraction<br/>• Fraud context isolation"]
+        LLM_PARSER["Semantic Intent Fallback<br/>• Raw unmapped bank decline disambiguation<br/>• PTP extraction & fraud context isolation"]
         HUMAN_ESC["Human Ops Quarantine<br/>(Conf < 0.70 / High Risk Flag)"]
     end
 
+    %% AI DECISION AGENT
+    subgraph S3 ["3. AI Recovery Decision Agent (Reasoning Layer - P0)"]
+        AGENT_REASON["RecoveryDecisionAgent<br/>• Evaluates candidate compliant action menu<br/>• Computes Net Expected Value (EV) score<br/>• Generates human-auditable reasoning"]
+        LLM_CASCADE["OpenRouter LLM Cascade<br/>Gemini 2.5 Flash ➔ Llama 4 ➔ DeepSeek R1"]
+    end
+
     %% COMPLIANCE ROUTER
-    subgraph S3 ["3. Programmatic Statutory Compliance Router (Hard Invariants)"]
+    subgraph S4 ["4. Programmatic Statutory Compliance Router (Hard Invariants)"]
         GUARD1{"Guard 1: CPA 2019 Dispute Quarantine<br/>(Is chargeback/fraud dispute active?)"}
         GUARD2{"Guard 2: Mandate Revocation Invariant<br/>(Is mandate cancelled/revoked by user?)"}
         GUARD3{"Guard 3: Zombie Retry Cap<br/>(Attempt count >= 3 or >14 days?)"}
@@ -106,17 +113,18 @@ flowchart TD
     end
 
     %% SCHEDULER & EXECUTION
-    subgraph S4 ["4. Simulated Clock Scheduler & Multi-Channel Execution"]
-        SCHED["Simulated Clock Priority Queue<br/>(Discrete-event simulation)"]
+    subgraph S5 ["5. Clock Scheduler & Multi-Channel Execution (P2 & P3)"]
+        SCHED["Discrete-Event Clock Scheduler<br/>(Salary-cycle snapping + 48h cooling)"]
         
         ACT_NOTICE["Pre-Debit Notice Dispatch<br/>(WhatsApp DLT Service Implicit >= 24h)"]
         ACT_RETRY["Smart Salary-Cycle Auto-Debit<br/>(1st-5th / 25th-30th + 48h cooling)"]
         ACT_AFA["Dynamic AFA OTP Checkout Link<br/>(For recurring > ₹15k / > ₹1L)"]
+        ACT_CART["3-Step Checkout Drip Recovery<br/>T+0 WhatsApp ➔ T+24h Email ➔ T+48h SMS"]
         ACT_VOICE["Empathetic Hinglish Voice Bot<br/>(Promise-to-Pay negotiation)"]
     end
 
     %% AUDIT & SETTLEMENT
-    subgraph S5 ["5. Cryptographic Audit Trail & Settlement"]
+    subgraph S6 ["6. Cryptographic Audit Trail & Settlement"]
         AUDIT["SHA-256 Chained Audit Ledger<br/>(DPDP 2023 PII Masked, 2,548 Blocks)"]
         SETTLE["Outcome Settlement Webhook<br/>(payment.captured / invoice.paid)"]
         RECOVERED_STATE["Terminal State: RECOVERED 🚀<br/>(Instant queue purge + statutory receipt)"]
@@ -126,16 +134,21 @@ flowchart TD
     W1 --> PARSE
     W2 --> PARSE
     PARSE --> STAGE1
-    STAGE1 -->|"High Conf Soft"| SOFT
-    STAGE1 -->|"High Conf Hard"| HARD
+    STAGE1 -->|"Soft Failure"| SOFT
+    STAGE1 -->|"Hard Stop"| HARD
+    STAGE1 -->|"Cart Abandonment"| CART
     STAGE1 -->|"Ambiguous / Unmapped"| LLM_PARSER
     
-    LLM_PARSER -->|"Resolved Intent"| SOFT
+    LLM_PARSER -->|"Resolved"| SOFT
     LLM_PARSER -->|"Low Confidence"| HUMAN_ESC
     
-    SOFT --> GUARD1
-    HARD --> GUARD1
-    HUMAN_ESC --> GUARD1
+    SOFT --> AGENT_REASON
+    CART --> AGENT_REASON
+    HARD --> AGENT_REASON
+    HUMAN_ESC --> AGENT_REASON
+    
+    AGENT_REASON <--> LLM_CASCADE
+    AGENT_REASON --> GUARD1
     
     GUARD1 -->|"Dispute Active"| HALT_QUARANTINE
     GUARD1 -->|"Clear"| GUARD2
@@ -152,6 +165,9 @@ flowchart TD
     GUARD5 -->|"Night (20:00-08:00)"| SCHED
     GUARD5 -->|"Daytime (08:00-20:00)"| ACT_NOTICE
     
+    CART --> ACT_CART
+    ACT_CART --> SETTLE
+    
     ACT_NOTICE --> SCHED
     SCHED --> ACT_RETRY
     ACT_RETRY -->|"Soft Failure"| ACT_VOICE
@@ -165,6 +181,7 @@ flowchart TD
     ACT_NOTICE --> AUDIT
     ACT_RETRY --> AUDIT
     ACT_AFA --> AUDIT
+    ACT_CART --> AUDIT
     ACT_VOICE --> AUDIT
     RECOVERED_STATE --> AUDIT
 ```
@@ -178,24 +195,24 @@ The recovery engine enforces all statutory waiting periods, cooling-off interval
 ```mermaid
 flowchart TD
     %% ─────────────────────────────────────────────────────────────
-    %% STAGE 1: INGESTION & DIAGNOSTIC TRIAGE
+    %% STAGE 1: INGESTION & DIAGNOSTIC TRIAGE (P0 AGENT)
     %% ─────────────────────────────────────────────────────────────
-    subgraph S1 ["1. Ingestion & Diagnostic Triage"]
+    subgraph S1 ["1. Ingestion & Diagnostic Triage (P0 Agent)"]
         START(((Start))) -->|"Gateway Webhook"| S_DETECTED["1. DETECTED\nIngest Failure Payload"]
-        S_DETECTED -->|"Parse Error Model"| S_DIAG["2. DIAGNOSING\nRule Engine & LLM Triage"]
-        S_DIAG -->|"Low Confidence (< 0.70)"| S_HUMAN["4. HUMAN_REVIEW\nManual Ops Review Queue"]
+        S_DETECTED -->|"Parse Error Model"| S_DIAG["2. DIAGNOSING\nRule Triage & LLM Agent Reasoning"]
+        S_DIAG -->|"Low Confidence (< 0.70)"| S_HUMAN["4. HUMAN_REVIEW\nManual Ops Quarantine Queue"]
     end
 
     %% ─────────────────────────────────────────────────────────────
-    %% STAGE 2: SCHEDULED NOTICE & AUTOMATED RETRIES
+    %% STAGE 2: SCHEDULED NOTICE & AUTOMATED RETRIES (P2 DRIP)
     %% ─────────────────────────────────────────────────────────────
-    subgraph S2 ["2. Automated Recovery Ladder"]
-        S_SCHED["3. ACTION_SCHEDULED\n24h Notice & 48h Cooling Queued"]
-        S_RETRY["5. RETRYING\nSalary-Cycle Auto-Debit Execution"]
+    subgraph S2 ["2. Automated Recovery Ladder (P2 Drip)"]
+        S_SCHED["3. ACTION_SCHEDULED\n24h Notice, Cooling, or Cart Drip"]
+        S_RETRY["5. RETRYING\nSalary-Cycle Auto-Debit & Multi-Rail"]
         
         S_SCHED -->|"Notice & Cooling Elapsed"| S_RETRY
         S_RETRY -.->|"Attempt #1 Failed (Requeue)"| S_SCHED
-        S_RETRY -.->|"Attempt #2 Failed (Digital Nudge)"| S_RETRY
+        S_RETRY -.->|"Attempt #2 Failed (Digital Nudge / Drip)"| S_RETRY
     end
 
     %% ─────────────────────────────────────────────────────────────
@@ -223,13 +240,13 @@ flowchart TD
     %% ─────────────────────────────────────────────────────────────
     %% INTER-STAGE TRANSITIONS
     %% ─────────────────────────────────────────────────────────────
-    S_DIAG -->|"Soft Failure (Conf ≥ 0.85)"| S_SCHED
+    S_DIAG -->|"Compliant Action Approved (Agent EV)"| S_SCHED
     S_DIAG -->|"Hard Stop (Revoked / Dispute)"| S_UNREC
 
     S_HUMAN -->|"Operator Approved"| S_SCHED
     S_HUMAN -->|"Operator Rejected"| S_UNREC
 
-    S_RETRY -->|"Paid via Auto-Debit"| S_RECOVERED
+    S_RETRY -->|"Paid via Auto-Debit / Checkout Link"| S_RECOVERED
     S_RETRY -->|"Attempt #3 Failed (Debit Cap)"| S_ESCALATED
     S_RETRY -->|"Customer Opt-Out"| S_UNREC
 

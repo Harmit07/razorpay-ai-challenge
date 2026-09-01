@@ -140,31 +140,33 @@ These rules represent our **internal safety and fair-practice guardrails** (dist
 
 ```mermaid
 flowchart TD
-    A[Payment Failure / Drop-Off Ingested] --> B{Classify Failure Type}
+    A[Payment Failure / Drop-Off Ingested] --> B{13-Bucket Classifier}
     
-    B -->|Soft Failure: Insufficient Funds / Bank Down| C{Check Regulatory Cap}
-    C -->|Amount <= Cap: ₹15k or ₹1L Exempt| D[Queue Pre-Debit Alert >= 24h<br/>Schedule Smart Retry]
+    B -->|Soft Failure: Insufficient Funds / Bank Down| AGENT[🤖 AI Recovery Decision Agent<br/>• Evaluates candidate action menu<br/>• Computes Net EV score<br/>• LLM reasoning cascade]
+    
+    AGENT --> C{Check Regulatory Cap}
+    C -->|Amount <= Cap: ₹15k or ₹1L Exempt| D[Queue Pre-Debit Alert >= 24h<br/>Schedule Salary-Cycle Retry]
     C -->|Amount > Cap| E[Direct Debit Disabled<br/>Send Dynamic AFA Payment Link]
     
     B -->|Hard Failure: Card Expired / Account Closed| F[Trigger STOP_MANDATE_EXPIRED<br/>Send 1-Click Mandate Update Link]
     
     B -->|Mandate Revoked / Halted| G[Trigger STOP_MANDATE_REVOKED<br/>Purge Pending Retries]
     
-    B -->|Checkout Drop-off| H[Check Consent & DND<br/>Send Transparent Cart Recovery Link]
+    B -->|Checkout Drop-off| H[3-Step Drip Recovery Flow<br/>T+0 WhatsApp ➔ T+24h Email ➔ T+48h SMS]
     
-    B -->|Overdue B2B Invoice| I[Check MSE Status<br/>Initiate Hinglish Voice / PTP Tracker Flow]
+    B -->|Overdue B2B Invoice| I[Check MSMED Status<br/>Initiate Hinglish Voice / PTP Tracker Flow]
 ```
 
 ### Failure Code Action Matrix
 
 | Failure Code / Scenario | Classification | Internal System Intervention | Strict Boundary Condition |
 | :--- | :--- | :--- | :--- |
-| `INSUFFICIENT_FUNDS` | Soft Failure | Dispatch 24h pre-debit alert $\rightarrow$ Schedule retry aligned with salary/liquidity heuristics (1st–5th or 25th–30th). | Must strictly uphold the statutory $\ge 24\text{h}$ pre-debit notice before firing retry. |
-| `GATEWAY_ERROR` / `BANK_DOWNTIME` | Soft Failure | Exponential backoff (Wait 2h $\rightarrow$ 6h $\rightarrow$ 24h) with route fallback. | Stop hammering degraded bank routes. |
+| `INSUFFICIENT_FUNDS` | Soft Failure | AI Agent EV scoring $\rightarrow$ Dispatch 24h pre-debit alert $\rightarrow$ Schedule retry aligned with salary heuristics (1st–5th or 25th–30th). | Must strictly uphold the statutory $\ge 24\text{h}$ pre-debit notice before firing retry. |
+| `GATEWAY_ERROR` / `BANK_DOWNTIME` | Soft Failure | Exponential backoff with route fallback $\rightarrow$ WhatsApp UPI intent deep-link. | Stop hammering degraded bank routes. |
 | `EXPIRED_CARD` / `ACCOUNT_CLOSED` | Hard Failure | Immediate status update; deliver 1-click mandate instrument update link. | Zero automated retry against expired instrument. |
 | `MANDATE_REVOKED` / `CANCELLED` | Hard Failure | Execute `STOP_MANDATE_REVOKED`; cancel all queued dunning tasks. | Never attempt debits on cancelled mandates. |
 | `MANDATE_EXPIRED` | Hard Failure | Execute `STOP_MANDATE_EXPIRED`; send re-registration invite. | Never attempt debits past mandate validity date. |
-| `ABANDONED_CHECKOUT` | Drop-off | Send 1-click cart recovery link with itemized pricing breakdown. | No hidden charges or subscription traps. |
+| `ABANDONED_CHECKOUT` | Drop-off | 3-step drip recovery (T+0 WhatsApp $\rightarrow$ T+24h Email $\rightarrow$ T+48h expiring discount SMS). | No hidden charges, consent required, max 3 touches. |
 | `OVERDUE_B2B_INVOICE` | Receivables | Conversational Hinglish reminder $\rightarrow$ Promise-to-Pay (PTP) scheduling under MSMED terms. | Professional conduct; no defamatory outreach. |
 
 ---
