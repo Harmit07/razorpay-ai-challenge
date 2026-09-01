@@ -7,16 +7,48 @@ let allTransactions = [];
 let allAuditRecords = [];
 let currentViewingTxnId = null;
 let simulationCalculated = false;
+let _cachedDailyRecoverySeries = null; // P1a: cached for re-render on view switch
 
-// Initialize Dashboard (Direct landing with zero overlay delay)
+// Initialize Dashboard
 document.addEventListener("DOMContentLoaded", async () => {
   setupViewRouting();
   setupSidebarResizer();
   updateRoiCalculation();
   renderPtpRecords(PTP_RECORDS);
-  await loadSummaryData();
-  await loadTransactions();
+
+  // Check if simulation was already executed in this session
+  const wasCalculated = sessionStorage.getItem("simulationCalculated") === "true";
+  if (wasCalculated) {
+    simulationCalculated = true;
+    await loadSummaryData();
+    await loadTransactions();
+  } else {
+    resetSimulationState(false); // initial silent reset on page load
+  }
+  // Pre-load benchmark series so it is cached and ready
+  await loadBenchmarkSeriesOnly();
 });
+
+async function loadBenchmarkSeriesOnly() {
+  try {
+    const res = await fetch("/api/benchmark");
+    if (res.ok) {
+      const data = await res.json();
+      if (data.daily_recovery_series) {
+        _cachedDailyRecoverySeries = data.daily_recovery_series;
+        if (simulationCalculated) {
+          requestAnimationFrame(() => {
+            const activeSec = document.querySelector(".view-section.active");
+            if (activeSec && activeSec.id === "view-benchmark") {
+              renderRecoveryTimeSeries(_cachedDailyRecoverySeries);
+            }
+          });
+        }
+      }
+    }
+  } catch (e) { /* silent — chart will populate after simulation */ }
+}
+
 
 function renderInitialAuditEmptyState() {
   const tbody = document.getElementById("tableBody");
@@ -170,6 +202,17 @@ function switchView(viewName, updateHash = true) {
   }
 
   window.scrollTo({ top: 0, behavior: "smooth" });
+
+  // P1a: Re-render the time-series chart when switching to benchmark view
+  if (viewName === "benchmark") {
+    requestAnimationFrame(() => {
+      if (simulationCalculated && _cachedDailyRecoverySeries) {
+        renderRecoveryTimeSeries(_cachedDailyRecoverySeries);
+      } else {
+        renderChartStandbyState();
+      }
+    });
+  }
 }
 
 async function loadSummaryData() {
@@ -297,6 +340,17 @@ async function loadSummaryData() {
       if (bmBarAiFill) bmBarAiFill.style.width = "72%";
       if (bmBarBaseLabel) bmBarBaseLabel.innerText = "₹20,54,913.61 (9.02% Yield)";
       if (bmBarBaseFill) bmBarBaseFill.style.width = "27%";
+
+      // P1a: Cache the series and render the cumulative recovery time-series chart
+      if (data.daily_recovery_series) {
+        _cachedDailyRecoverySeries = data.daily_recovery_series;
+        requestAnimationFrame(() => {
+          const activeSec = document.querySelector(".view-section.active");
+          if (activeSec && activeSec.id === "view-benchmark") {
+            renderRecoveryTimeSeries(_cachedDailyRecoverySeries);
+          }
+        });
+      }
     }
   } catch (err) {
     console.warn("Using local benchmark fallback values", err);
@@ -384,6 +438,24 @@ function renderTransactions(txns) {
     else if (t.error_reason.includes("dormant")) diagnosisHuman = "Dormant KYC restricted";
     else if (t.error_reason.includes("dispute")) diagnosisHuman = "Active fraud dispute";
 
+    // P1b: Decision Chain column
+    let decisionChain = "";
+    const bucketMap = {
+      "insufficient_funds": "Bucket 1",
+      "bank_server_down": "Bucket 2",
+      "gateway_timeout": "Bucket 3",
+      "card_expired": "Bucket 7",
+      "mandate_cancelled_by_user": "Bucket 8",
+      "upi_collect_expiry": "Bucket 5",
+      "payment_disputed": "Bucket 12",
+    };
+    const bucket = bucketMap[t.error_reason] || "Bucket ?";
+    let actionCode = isStopped ? "STOP" : (t.method === "upi_autopay" ? "UPI_INTENT" : "AUTO_RETRY");
+    if (isRecurring && t.amount > statutoryCap) actionCode = "AFA_LINK";
+    const outcome = isStopped ? "QUARANTINED" : "SCHEDULED";
+    const chainColor = isStopped ? "var(--color-error-text)" : "var(--color-success-text)";
+    decisionChain = `<span class="decision-chain-badge">${bucket}</span><span class="decision-chain-arrow">→</span><span class="decision-chain-badge">${actionCode}</span><span class="decision-chain-arrow">→</span><span class="decision-chain-badge" style="color:${chainColor};">${outcome}</span>`;
+
     tr.innerHTML = `
       <td>
         <div style="font-family:var(--font-mono); font-size:12.5px; font-weight:600; color:var(--text-primary);">${t.txn_id}</div>
@@ -399,7 +471,10 @@ function renderTransactions(txns) {
       <td>${classPill}</td>
       <td>${compPill}</td>
       <td>
-        <div style="font-size:12px; color:${isStopped ? 'var(--color-error-text)' : 'var(--text-primary)'}; font-weight:${isStopped ? '600' : '400'};">${actionText}</div>
+        <div style="font-size:11px; color:${isStopped ? 'var(--color-error-text)' : 'var(--text-primary)'}; font-weight:${isStopped ? '600' : '400'}; white-space:nowrap;">${actionText}</div>
+      </td>
+      <td>
+        <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">${decisionChain}</div>
       </td>
       <td style="text-align:right;">
         <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); openAuditModal('${t.txn_id}')">Inspect →</button>
@@ -408,6 +483,7 @@ function renderTransactions(txns) {
     tbody.appendChild(tr);
   });
 }
+
 
 function formatPaymentMethod(m) {
   if (!m) return "Card";
@@ -671,74 +747,101 @@ async function runDemoSimulation() {
       <div style="background:var(--bg-secondary); height:5px; border-radius:3px; overflow:hidden;">
         <div id="simProgressBar" style="background:var(--color-primary); height:100%; width:15%; transition:width 300ms ease-out;"></div>
       </div>
-      <div style="font-size:12px; color:var(--text-secondary); margin-top:8px;" id="simStatusText">Initializing recovery pipeline...</div>
+      <div style="font-size:12px; color:var(--text-secondary); margin-top:8px;" id="simStatusText">Initializing AI recovery pipeline...</div>
+    </div>
+    <div id="simAgentBadge" style="display:none; margin-bottom:14px; padding:10px 14px; background:linear-gradient(135deg,#f0f4ff,#e8f0fe); border:1px solid #c5d3f0; border-radius:8px; font-size:12px; color:#3b5bdb;">
+      <strong>🤖 AI Agent:</strong> <span id="simAgentText">—</span>
     </div>
     <div id="simTimelineContainer" style="display:flex; flex-direction:column; gap:12px;"></div>
   `;
 
   try {
-    const res = await fetch("/api/run-demo");
+    // P3: Call live in-process FSM simulation endpoint
+    const res = await fetch("/api/simulate/live", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ txn_id: "sub_live_recov_9824", amount: 4999.00, error_reason: "insufficient_funds", payment_method: "upi_autopay" })
+    });
     const data = res.ok ? await res.json() : null;
-    const steps = (data && data.steps && data.steps.length > 0) ? data.steps : getFallbackDemoSteps();
+
+    // Show agent reasoning badge
+    if (data && data.agent_reasoning) {
+      const agentBadge = document.getElementById("simAgentBadge");
+      const agentText = document.getElementById("simAgentText");
+      if (agentBadge) agentBadge.style.display = "block";
+      if (agentText) agentText.innerText = `[${data.agent_model_used || "Agent"}] ${data.agent_reasoning}`;
+    }
+
+    // Use live FSM steps if available, else fall back
+    const steps = (data && data.steps && data.steps.length > 0) ? data.steps : null;
+    const useLive = !!steps;
 
     const container = document.getElementById("simTimelineContainer");
     const progressBar = document.getElementById("simProgressBar");
     const statusText = document.getElementById("simStatusText");
     const liveBadge = document.getElementById("simLiveBadge");
 
-    const HUMAN_STEP_TITLES = [
-      "Ingest Payment Failure",
-      "Diagnose Root Cause",
-      "Schedule Compliant Retry",
-      "Dispatch 24h Advance Notice",
-      "Execute Automated Debit",
-      "Verify Settlement & Close"
-    ];
+    if (useLive) {
+      // P3: Progressive rendering of live FSM steps
+      for (let i = 0; i < steps.length; i++) {
+        await new Promise(r => setTimeout(r, 380));
+        const step = steps[i];
+        const pct = Math.round(((i + 1) / steps.length) * 100);
+        if (progressBar) progressBar.style.width = `${pct}%`;
+        if (statusText) statusText.innerText = `Step ${i + 1}/${steps.length}: ${step.label || step.state}`;
 
-    for (let i = 0; i < steps.length; i++) {
-      await new Promise(r => setTimeout(r, 450));
-      const step = steps[i];
-      const pct = Math.round(((i + 1) / steps.length) * 100);
-      if (progressBar) progressBar.style.width = `${pct}%`;
-      if (statusText) statusText.innerText = `Executing Step ${i + 1} of ${steps.length}: ${HUMAN_STEP_TITLES[i] || formatEventType(step.event_type)}`;
+        const isFinal = step.state === "RECOVERED" || step.state === "UNRECOVERABLE";
+        const isRecovered = step.state === "RECOVERED";
+        let stateBadge = `<span class="badge-pill pill-info"><span class="badge-dot"></span>${step.state}</span>`;
+        if (isRecovered) stateBadge = `<span class="badge-pill pill-success"><span class="badge-dot"></span>RECOVERED ✓</span>`;
+        else if (step.state === "UNRECOVERABLE") stateBadge = `<span class="badge-pill pill-error"><span class="badge-dot"></span>STOPPED</span>`;
+        else if (step.state === "PTP_FROZEN") stateBadge = `<span class="badge-pill pill-warning"><span class="badge-dot"></span>PTP FROZEN</span>`;
 
-      let cleanDesc = step.decision_rationale || "";
-      cleanDesc = cleanDesc
-        .replace(/T\d\d:\d\d:\d\d\+\d\d:\d\d/g, "")
-        .replace(/; auto-debit scheduled for \d{4}-\d\d-\d\d/g, "")
-        .replace(/\(Salary Snap: [^)]+\)/g, "")
-        .replace(/Mandated >=24h Pre-Debit Alert queued for \d{4}-\d\d-\d\d/g, "Mandated 24h pre-debit notice queued with opt-out link.")
-        .trim();
+        // Agent info if present
+        let agentSnippet = "";
+        if (step.agent && step.agent.reasoning) {
+          agentSnippet = `<div style="margin-top:6px; font-size:11px; padding:6px 8px; background:linear-gradient(135deg,#f0f4ff,#e8f0fe); border-radius:4px; color:#3b5bdb;">🤖 Agent (${step.agent.model}): ${step.agent.reasoning}</div>`;
+        }
 
-      let ruleLabel = "RBI E-Mandate Framework";
-      if (step.statutory_rule_applied) {
-        if (step.statutory_rule_applied.includes("PRE_DEBIT") || step.statutory_rule_applied.includes("RBI")) ruleLabel = "RBI E-Mandate (2026)";
-        else if (step.statutory_rule_applied.includes("TRAI")) ruleLabel = "TRAI Quiet Hours (08:00–20:00)";
-        else if (step.statutory_rule_applied.includes("MAX_RETRY")) ruleLabel = "RBI 3x Retry Ceiling";
-        else if (step.statutory_rule_applied.includes("DPDP")) ruleLabel = "DPDP Act 2023 Masking";
-      }
-
-      let stateBadge = `<span class="badge-pill pill-info"><span class="badge-dot"></span>In Progress</span>`;
-      if (step.to_state === "PAID" || step.to_state === "RECOVERED") {
-        stateBadge = `<span class="badge-pill pill-success"><span class="badge-dot"></span>Recovered</span>`;
-      } else if (step.to_state === "ACTION_SCHEDULED" || step.to_state === "PRE_DEBIT_DELIVERED") {
-        stateBadge = `<span class="badge-pill pill-info"><span class="badge-dot"></span>Scheduled</span>`;
-      }
-
-      const stepEl = document.createElement("div");
-      stepEl.className = "timeline-step";
-      stepEl.innerHTML = `
-        <div class="timeline-dot">${i + 1}</div>
-        <div class="timeline-content">
-          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px;">
-            <span class="timeline-title">${HUMAN_STEP_TITLES[i] || formatEventType(step.event_type)}</span>
-            ${stateBadge}
+        const stepEl = document.createElement("div");
+        stepEl.className = "timeline-step";
+        stepEl.innerHTML = `
+          <div class="timeline-dot" style="${isRecovered ? 'background:var(--color-success);color:#fff;' : ''}">${step.step}</div>
+          <div class="timeline-content">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px;">
+              <span class="timeline-title">${step.label || step.state}</span>
+              ${stateBadge}
+            </div>
+            <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:4px;">${step.action}</div>
+            <div style="font-size:12.5px; color:var(--text-secondary); line-height:1.45;">${step.detail}</div>
+            ${agentSnippet}
           </div>
-          <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:4px;">UPI AutoPay Rail · ${ruleLabel}</div>
-          <div style="font-size:12.5px; color:var(--text-secondary); line-height:1.45;">${cleanDesc}</div>
-        </div>
-      `;
-      container.appendChild(stepEl);
+        `;
+        container.appendChild(stepEl);
+      }
+    } else {
+      // Fallback to old static steps
+      const fallbackSteps = getFallbackDemoSteps();
+      const HUMAN_STEP_TITLES = [
+        "Ingest Payment Failure", "Diagnose Root Cause", "Schedule Compliant Retry",
+        "Dispatch 24h Advance Notice", "Execute Automated Debit", "Verify Settlement & Close"
+      ];
+      for (let i = 0; i < fallbackSteps.length; i++) {
+        await new Promise(r => setTimeout(r, 450));
+        const step = fallbackSteps[i];
+        const pct = Math.round(((i + 1) / fallbackSteps.length) * 100);
+        if (progressBar) progressBar.style.width = `${pct}%`;
+        if (statusText) statusText.innerText = `Step ${i + 1} of ${fallbackSteps.length}: ${HUMAN_STEP_TITLES[i]}`;
+        const stepEl = document.createElement("div");
+        stepEl.className = "timeline-step";
+        stepEl.innerHTML = `
+          <div class="timeline-dot">${i + 1}</div>
+          <div class="timeline-content">
+            <span class="timeline-title">${HUMAN_STEP_TITLES[i]}</span>
+            <div style="font-size:12.5px; color:var(--text-secondary); line-height:1.45;">${step.decision_rationale}</div>
+          </div>`;
+        container.appendChild(stepEl);
+      }
     }
 
     if (liveBadge) {
@@ -746,11 +849,14 @@ async function runDemoSimulation() {
       liveBadge.innerHTML = `<span class="badge-dot"></span>Simulation Completed`;
     }
     if (statusText) {
-      statusText.innerText = "Transaction successfully recovered with zero statutory compliance violations.";
+      const finalState = data && data.final_state ? data.final_state : "RECOVERED";
+      statusText.innerText = finalState === "RECOVERED"
+        ? `✓ Transaction recovered in ${data && data.recovery_days ? data.recovery_days : 1.3} simulated days · 0 statutory violations`
+        : `Transaction reached state: ${finalState} · 0 violations`;
     }
 
-    // Recalculate and populate all dashboard data live
     simulationCalculated = true;
+    sessionStorage.setItem("simulationCalculated", "true");
     await loadSummaryData();
     await loadTransactions();
     showToast("✓ Autonomous recovery simulation completed across 750 transactions.", "success");
@@ -759,8 +865,9 @@ async function runDemoSimulation() {
   }
 }
 
-function resetSimulationState() {
+function resetSimulationState(showToastMsg = true) {
   simulationCalculated = false;
+  sessionStorage.setItem("simulationCalculated", "false");
   allTransactions = [];
   allAuditRecords = [];
 
@@ -844,7 +951,7 @@ function resetSimulationState() {
   const bmBarBaseFill = document.getElementById("bm-bar-base-fill");
 
   if (bmHero) bmHero.innerText = "—";
-  if (bmHeroSub) bmHeroSub.innerText = "Awaiting simulation · Click 'Run Demo' to compare AI recovery against fixed 24h retry";
+  if (bmHeroSub) bmHeroSub.innerText = "Awaiting simulation · Click 'Run Simulation' to compare AI recovery against fixed 24h retry";
   if (bmAi) bmAi.innerText = "—";
   if (bmAiSub) bmAiSub.innerText = "Awaiting simulation";
   if (bmBase) bmBase.innerText = "—";
@@ -859,6 +966,9 @@ function resetSimulationState() {
   if (bmBarBaseLabel) bmBarBaseLabel.innerText = "—";
   if (bmBarBaseFill) bmBarBaseFill.style.width = "0%";
 
+  // Render standby chart
+  renderChartStandbyState();
+
   // 7. Audit Explorer Table
   renderInitialAuditEmptyState();
 
@@ -869,7 +979,9 @@ function resetSimulationState() {
   const modal = document.getElementById("auditModal");
   if (modal) modal.classList.remove("active");
 
-  showToast("↺ Simulation state reset to standby.", "info");
+  if (showToastMsg) {
+    showToast("↺ Simulation state reset to standby.", "info");
+  }
 }
 
 function resetChaosScenarios() {
@@ -954,6 +1066,367 @@ function formatCurrencyCrOrLakh(amount) {
   }
 }
 
+// P1a: Cumulative Recovery Time-Series Chart — Sharp, Interactive, DPR-aware
+let _chartAnimFrame = null;
+let _chartMouseX = null;
+let _chartSeries = null;
+
+function renderRecoveryTimeSeries(series) {
+  const canvas = document.getElementById("recoveryTimeSeriesChart");
+  if (!canvas) return;
+
+  // ── 1. DPR fix: scale canvas pixels by devicePixelRatio for Retina sharpness ──
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const cssW = Math.max(rect.width, canvas.parentElement ? canvas.parentElement.clientWidth : 0, 500);
+  const cssH = 260;
+
+  canvas.width  = cssW * dpr;
+  canvas.height = cssH * dpr;
+  canvas.style.width  = cssW + "px";
+  canvas.style.height = cssH + "px";
+
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);          // all drawing now in CSS-pixel space
+  const W = cssW, H = cssH;
+
+  _chartSeries = series;
+
+  // ── 2. Palette ──
+  const COLOR_AI    = { line: "#4f9cf0", fill0: "rgba(79,156,240,0.22)", fill1: "rgba(79,156,240,0.01)", dot: "#4f9cf0" };
+  const COLOR_NAIVE = { line: "#f97316", fill0: "rgba(249,115,22,0.15)", fill1: "rgba(249,115,22,0.01)", dot: "#f97316" };
+  const COLOR_GRID  = "rgba(120,130,150,0.13)";
+  const COLOR_AXIS  = "rgba(120,130,150,0.9)";
+  const FONT        = "500 11px 'Inter', system-ui, sans-serif";
+
+  const pad = { top: 36, right: 28, bottom: 46, left: 78 };
+  const plotW = W - pad.left - pad.right;
+  const plotH = H - pad.top - pad.bottom;
+
+  const days     = series.map(d => d.day);
+  const aiVals   = series.map(d => d.ai_cumulative_inr);
+  const naiveVals= series.map(d => d.naive_cumulative_inr);
+  const maxVal   = Math.max(...aiVals, ...naiveVals) * 1.15;
+  const n        = days.length;
+
+  // ── 3. Coordinate helpers ──
+  const xOf = i => pad.left + (i / (n - 1)) * plotW;
+  const yOf = v => pad.top + plotH - (v / maxVal) * plotH;
+
+  // ── 4. Main draw function (called each animation frame & on hover) ──
+  function draw(hoverIdx) {
+    ctx.clearRect(0, 0, W, H);
+
+    // Background
+    ctx.fillStyle = "transparent";
+    ctx.fillRect(0, 0, W, H);
+
+    // ── Grid ──
+    const gridCount = 5;
+    for (let g = 0; g <= gridCount; g++) {
+      const gy = pad.top + plotH - (g / gridCount) * plotH;
+      ctx.beginPath();
+      ctx.strokeStyle = COLOR_GRID;
+      ctx.lineWidth = 1;
+      // Dashed grid
+      ctx.setLineDash([4, 4]);
+      ctx.moveTo(pad.left, gy);
+      ctx.lineTo(pad.left + plotW, gy);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Y-axis labels
+      const gVal = (g / gridCount) * maxVal;
+      ctx.fillStyle = COLOR_AXIS;
+      ctx.font = FONT;
+      ctx.textAlign = "right";
+      ctx.fillText(formatCurrencyCrOrLakh(gVal), pad.left - 10, gy + 4);
+    }
+
+    // ── X-axis labels ──
+    ctx.fillStyle = COLOR_AXIS;
+    ctx.font = FONT;
+    ctx.textAlign = "center";
+    for (let i = 0; i < n; i++) {
+      const skip = n > 10 ? (i % 2 !== 0) : false;
+      if (!skip) {
+        ctx.fillText(`D${days[i]}`, xOf(i), H - 14);
+      }
+    }
+
+    // ── Axis baseline ──
+    ctx.beginPath();
+    ctx.strokeStyle = "rgba(120,130,150,0.3)";
+    ctx.lineWidth = 1;
+    ctx.moveTo(pad.left, pad.top + plotH);
+    ctx.lineTo(pad.left + plotW, pad.top + plotH);
+    ctx.stroke();
+
+    // ── Draw area + line for each series ──
+    function drawSeries(vals, col) {
+      // Smooth bezier curve points using cardinal spline
+      function getCP(pts, i) {
+        const p0 = pts[Math.max(i - 1, 0)];
+        const p1 = pts[i];
+        const p2 = pts[Math.min(i + 1, pts.length - 1)];
+        return {
+          cp1x: p1.x + (p2.x - p0.x) / 6,
+          cp1y: p1.y + (p2.y - p0.y) / 6,
+          cp2x: p2.x - (p2.x - p0.x) / 6,
+          cp2y: p2.y - (p2.y - p0.y) / 6,
+        };
+      }
+      const pts = vals.map((v, i) => ({ x: xOf(i), y: yOf(v) }));
+
+      // Area fill first
+      const areaGrad = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
+      areaGrad.addColorStop(0, col.fill0);
+      areaGrad.addColorStop(1, col.fill1);
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 0; i < pts.length - 1; i++) {
+        const cp = getCP(pts, i);
+        ctx.bezierCurveTo(cp.cp1x, cp.cp1y, cp.cp2x, cp.cp2y, pts[i+1].x, pts[i+1].y);
+      }
+      ctx.lineTo(pts[n-1].x, pad.top + plotH);
+      ctx.lineTo(pts[0].x, pad.top + plotH);
+      ctx.closePath();
+      ctx.fillStyle = areaGrad;
+      ctx.fill();
+
+      // Line
+      ctx.beginPath();
+      ctx.strokeStyle = col.line;
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 0; i < pts.length - 1; i++) {
+        const cp = getCP(pts, i);
+        ctx.bezierCurveTo(cp.cp1x, cp.cp1y, cp.cp2x, cp.cp2y, pts[i+1].x, pts[i+1].y);
+      }
+      ctx.stroke();
+
+      // All dots (small)
+      pts.forEach((p, i) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, i === hoverIdx ? 5.5 : 3, 0, Math.PI * 2);
+        ctx.fillStyle = i === hoverIdx ? col.line : "transparent";
+        ctx.strokeStyle = col.line;
+        ctx.lineWidth = i === hoverIdx ? 2 : 1.5;
+        ctx.fill();
+        ctx.stroke();
+      });
+    }
+
+    drawSeries(naiveVals, COLOR_NAIVE); // naive first (behind)
+    drawSeries(aiVals,    COLOR_AI);    // AI on top
+
+    // ── Crosshair + tooltip on hover ──
+    if (hoverIdx !== null && hoverIdx >= 0 && hoverIdx < n) {
+      const cx = xOf(hoverIdx);
+
+      // Vertical crosshair line
+      ctx.beginPath();
+      ctx.strokeStyle = "rgba(150,160,180,0.4)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 3]);
+      ctx.moveTo(cx, pad.top);
+      ctx.lineTo(cx, pad.top + plotH);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Tooltip box
+      const aiV    = aiVals[hoverIdx];
+      const naiveV = naiveVals[hoverIdx];
+      const day    = days[hoverIdx];
+      const lines  = [
+        { label: `Day ${day}`, value: "", bold: true },
+        { label: "AI Agent",       value: formatCurrencyCrOrLakh(aiV),    color: COLOR_AI.line },
+        { label: "Naive Baseline", value: formatCurrencyCrOrLakh(naiveV), color: COLOR_NAIVE.line },
+        { label: "Lift",           value: `+${formatCurrencyCrOrLakh(aiV - naiveV)}`, color: "#22c55e" },
+      ];
+
+      const ttPad = 10, ttLineH = 18, ttW = 190, ttH = ttPad * 2 + ttLineH * lines.length;
+      let ttX = cx + 14;
+      if (ttX + ttW > W - 10) ttX = cx - ttW - 14;
+      const ttY = pad.top + 4;
+
+      // Shadow + rounded rect
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.18)";
+      ctx.shadowBlur = 12;
+      ctx.shadowOffsetY = 4;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(ttX, ttY, ttW, ttH, 8) : ctx.rect(ttX, ttY, ttW, ttH);
+      ctx.fillStyle = "rgba(18, 24, 38, 0.95)";
+      ctx.fill();
+      ctx.restore();
+
+      // Tooltip border
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(ttX, ttY, ttW, ttH, 8) : ctx.rect(ttX, ttY, ttW, ttH);
+      ctx.strokeStyle = "rgba(100,120,160,0.35)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Tooltip text
+      lines.forEach((line, li) => {
+        const ty = ttY + ttPad + li * ttLineH + 11;
+        if (line.bold) {
+          ctx.font = "600 12px 'Inter', system-ui, sans-serif";
+          ctx.fillStyle = "#e2e8f0";
+          ctx.textAlign = "left";
+          ctx.fillText(line.label, ttX + ttPad, ty);
+        } else {
+          // Color dot
+          ctx.beginPath();
+          ctx.arc(ttX + ttPad + 5, ty - 3, 4, 0, Math.PI * 2);
+          ctx.fillStyle = line.color || "#e2e8f0";
+          ctx.fill();
+          ctx.font = "11px 'Inter', system-ui, sans-serif";
+          ctx.fillStyle = "rgba(180,190,210,0.9)";
+          ctx.textAlign = "left";
+          ctx.fillText(line.label, ttX + ttPad + 16, ty);
+          ctx.font = "600 11px 'Inter', system-ui, sans-serif";
+          ctx.fillStyle = line.color || "#e2e8f0";
+          ctx.textAlign = "right";
+          ctx.fillText(line.value, ttX + ttW - ttPad, ty);
+        }
+      });
+    }
+
+    // ── Legend (top right) ──
+    const legendItems = [
+      { color: COLOR_AI.line,    label: "AI Agent (23.84%)" },
+      { color: COLOR_NAIVE.line, label: "Naive (9.02%)" },
+    ];
+    let lx = pad.left;
+    const ly = 18;
+    legendItems.forEach(item => {
+      // Line swatch
+      ctx.beginPath();
+      ctx.strokeStyle = item.color;
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = "round";
+      ctx.moveTo(lx, ly);
+      ctx.lineTo(lx + 20, ly);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(lx + 10, ly, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = item.color;
+      ctx.fill();
+
+      ctx.font = "500 11px 'Inter', system-ui, sans-serif";
+      ctx.fillStyle = "rgba(150,160,180,0.95)";
+      ctx.textAlign = "left";
+      ctx.fillText(item.label, lx + 26, ly + 4);
+      lx += ctx.measureText(item.label).width + 56;
+    });
+  }
+
+  // ── 5. Animated entry (draws progressively) ──
+  if (_chartAnimFrame) cancelAnimationFrame(_chartAnimFrame);
+  const ANIM_DURATION = 600; // ms
+  const startTime = performance.now();
+
+  function animateDraw(now) {
+    const t = Math.min((now - startTime) / ANIM_DURATION, 1);
+    const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+
+    // Temporarily clip to animate reveal left-to-right
+    ctx.clearRect(0, 0, W, H);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, pad.left + plotW * eased + 30, H);
+    ctx.clip();
+    draw(_chartMouseX);
+    ctx.restore();
+
+    if (t < 1) {
+      _chartAnimFrame = requestAnimationFrame(animateDraw);
+    } else {
+      draw(_chartMouseX); // final clean draw without clip
+    }
+  }
+  _chartAnimFrame = requestAnimationFrame(animateDraw);
+
+  // ── 6. Mouse interaction — clean up old handlers before adding new ones ──
+  const targetCanvas = canvas; // same element, already in DOM
+  targetCanvas.style.cursor = "crosshair";
+
+  // Remove previous listeners if stored
+  if (targetCanvas._mmHandler) targetCanvas.removeEventListener("mousemove", targetCanvas._mmHandler);
+  if (targetCanvas._mlHandler) targetCanvas.removeEventListener("mouseleave", targetCanvas._mlHandler);
+
+  targetCanvas._mmHandler = (e) => {
+    const r = targetCanvas.getBoundingClientRect();
+    const mouseX = (e.clientX - r.left);
+    let nearest = 0, minDist = Infinity;
+    for (let i = 0; i < n; i++) {
+      const dist = Math.abs(xOf(i) - mouseX);
+      if (dist < minDist) { minDist = dist; nearest = i; }
+    }
+    _chartMouseX = nearest;
+    draw(nearest);
+  };
+
+  targetCanvas._mlHandler = () => {
+    _chartMouseX = null;
+    draw(null);
+  };
+
+  targetCanvas.addEventListener("mousemove", targetCanvas._mmHandler);
+  targetCanvas.addEventListener("mouseleave", targetCanvas._mlHandler);
+}
+
+function renderChartStandbyState() {
+  const canvas = document.getElementById("recoveryTimeSeriesChart");
+  if (!canvas) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const cssW = Math.max(rect.width, canvas.parentElement ? canvas.parentElement.clientWidth : 0, 500);
+  const cssH = 260;
+
+  canvas.width  = cssW * dpr;
+  canvas.height = cssH * dpr;
+  canvas.style.width  = cssW + "px";
+  canvas.style.height = cssH + "px";
+
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, cssW, cssH);
+
+  // Background subtle dashed box
+  ctx.strokeStyle = "rgba(120,130,150,0.18)";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 4]);
+  ctx.strokeRect(30, 20, cssW - 60, cssH - 40);
+  ctx.setLineDash([]);
+
+  // Subtle interior grid
+  ctx.strokeStyle = "rgba(120,130,150,0.07)";
+  ctx.lineWidth = 1;
+  for (let i = 1; i <= 3; i++) {
+    const gy = 20 + (i / 4) * (cssH - 40);
+    ctx.beginPath();
+    ctx.moveTo(30, gy);
+    ctx.lineTo(cssW - 30, gy);
+    ctx.stroke();
+  }
+
+  // Standby Title & Subtitle
+  ctx.fillStyle = "rgba(140,165,195,0.92)";
+  ctx.font = "600 13.5px 'Inter', system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("📊 Simulation Standby", cssW / 2, cssH / 2 - 8);
+
+  ctx.fillStyle = "rgba(120,135,160,0.75)";
+  ctx.font = "400 11.5px 'Inter', system-ui, sans-serif";
+  ctx.fillText("Click '▶ Run Simulation' in the header to execute portfolio recovery and generate curves", cssW / 2, cssH / 2 + 14);
+}
+
 async function triggerChaosScenario(scenarioKey) {
   const panel = document.getElementById("chaosConsolePanel");
   const titleEl = document.getElementById("chaosConsoleTitle");
@@ -1013,7 +1486,7 @@ async function triggerChaosScenario(scenarioKey) {
     console.error("Chaos error", err);
     if (activePill) { activePill.className = "badge-pill pill-error"; activePill.innerText = "FAILED"; }
     if (statusEl) { statusEl.className = "badge-pill pill-error"; statusEl.innerText = "OFFLINE"; }
-    if (summaryEl) summaryEl.innerHTML = `<div style="padding:12px; color:var(--color-error);">Backend server is offline or unreachable. Please ensure the Python server is running on port 8000.</div>`;
+    if (summaryEl) summaryEl.innerHTML = `<div style="padding:12px; color:var(--color-error);">Backend server is offline or unreachable. Please ensure the Python server is running on port 8888.</div>`;
   }
 }
 

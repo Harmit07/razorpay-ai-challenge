@@ -105,6 +105,11 @@ class TransactionFailureEvent(BaseModel):
     # Raw / Ambiguous Gateway Payloads
     raw_error_description: Optional[str] = Field(default=None, description="Raw unstructured bank decline text or unknown payload")
     
+    # Checkout Drop-Off Context (P2: Distinct Cart Recovery Flow)
+    cart_items: Optional[List[str]] = Field(default=None, description="List of item names in abandoned cart for personalised recovery messaging")
+    cart_discount_token: Optional[str] = Field(default=None, description="Time-limited discount token to include in cart recovery link")
+    cart_recovery_step: int = Field(default=0, description="Current step in multi-step cart drip recovery (0=initial, 1=24h nudge, 2=final 48h)")
+    
     # Injected Edge Case Marker (Testing & Benchmark Calibration)
     edge_case_tag: Optional[str] = Field(default=None, description="Identifier for deliberately injected edge case scenarios (e.g., EDGE_01_ZOMBIE_RETRY)")
     

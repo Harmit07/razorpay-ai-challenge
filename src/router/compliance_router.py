@@ -43,6 +43,8 @@ class RecoveryActionType(str, Enum):
     STOP_TERMINATION = "STOP_TERMINATION"
     PTP_HOLD_FREEZE = "PTP_HOLD_FREEZE"
     HUMAN_OPS_REVIEW = "HUMAN_OPS_REVIEW"
+    # P2: Distinct multi-step checkout drop-off recovery
+    CHECKOUT_DROP_OFF_RECOVERY = "CHECKOUT_DROP_OFF_RECOVERY"
 
 
 class RecoveryChannel(str, Enum):
@@ -203,6 +205,7 @@ class ComplianceRouter:
         RecoveryActionType.STOP_TERMINATION: "DLT_SUBSCRIPTION_CANCELLATION_SERVICE_V1",
         RecoveryActionType.PTP_HOLD_FREEZE: "DLT_PTP_CONFIRMATION_RECEIPT_V1",
         RecoveryActionType.HUMAN_OPS_REVIEW: "DLT_INTERNAL_AUDIT_V1",
+        RecoveryActionType.CHECKOUT_DROP_OFF_RECOVERY: "DLT_CART_RECOVERY_PROMOTIONAL_V1",
     }
 
     @staticmethod
@@ -420,21 +423,67 @@ class ComplianceRouter:
                 ComplianceEnforcer.validate(plan, event)
                 return plan
 
-            exec_time, delayed = self.adjust_for_trai_quiet_hours(now)
-            plan = CandidateActionPlan(
-                txn_id=event.txn_id,
-                action_type=RecoveryActionType.DYNAMIC_AFA_PAYMENT_LINK,
-                primary_channel=RecoveryChannel.WHATSAPP,
-                fallback_channel=RecoveryChannel.EMAIL,
-                scheduled_execution_time=exec_time,
-                is_delayed_for_quiet_hours=delayed,
-                dlt_stream=DLTStream.PROMOTIONAL,
-                dlt_template_id=self.DLT_TEMPLATE_REGISTRY[RecoveryActionType.DYNAMIC_AFA_PAYMENT_LINK],
-                compliance_audit_reasoning="Checkout Drop-off: Dispatched itemized cart recovery link with full pricing transparency (CCPA 2023).",
-                target_fsm_state="ACTION_SCHEDULED",
-            )
-            ComplianceEnforcer.validate(plan, event)
-            return plan
+            # P2: Multi-step drip recovery for checkout abandonment
+            # Step 0 (T+0): Immediate WhatsApp cart recovery link with scarcity + discount
+            # Step 1 (T+24h): Email re-engagement with social proof
+            # Step 2 (T+48h): Final SMS with expiring discount (last chance)
+            recovery_step = getattr(event, 'cart_recovery_step', 0)
+            cart_items_str = ", ".join(event.cart_items) if event.cart_items else "your cart"
+            discount_token = event.cart_discount_token or "SAVE10"
+
+            if recovery_step == 0:
+                # Step 1: Immediate WhatsApp rich cart recovery link
+                exec_time, delayed = self.adjust_for_trai_quiet_hours(now)
+                plan = CandidateActionPlan(
+                    txn_id=event.txn_id,
+                    action_type=RecoveryActionType.CHECKOUT_DROP_OFF_RECOVERY,
+                    primary_channel=RecoveryChannel.WHATSAPP,
+                    fallback_channel=RecoveryChannel.EMAIL,
+                    scheduled_execution_time=exec_time,
+                    is_delayed_for_quiet_hours=delayed,
+                    dlt_stream=DLTStream.PROMOTIONAL,
+                    dlt_template_id=self.DLT_TEMPLATE_REGISTRY[RecoveryActionType.CHECKOUT_DROP_OFF_RECOVERY],
+                    compliance_audit_reasoning=f"Checkout Drop-off Step 1/3: WhatsApp cart recovery link dispatched for '{cart_items_str}' with discount token '{discount_token}' and scarcity signal (CCPA 2023 transparent pricing).",
+                    target_fsm_state="ACTION_SCHEDULED",
+                )
+                ComplianceEnforcer.validate(plan, event)
+                return plan
+            elif recovery_step == 1:
+                # Step 2: Email re-engagement with social proof at T+24h
+                exec_time = now + timedelta(hours=24)
+                exec_time, delayed = self.adjust_for_trai_quiet_hours(exec_time)
+                plan = CandidateActionPlan(
+                    txn_id=event.txn_id,
+                    action_type=RecoveryActionType.CHECKOUT_DROP_OFF_RECOVERY,
+                    primary_channel=RecoveryChannel.EMAIL,
+                    fallback_channel=RecoveryChannel.SMS,
+                    scheduled_execution_time=exec_time,
+                    is_delayed_for_quiet_hours=delayed,
+                    dlt_stream=DLTStream.PROMOTIONAL,
+                    dlt_template_id=self.DLT_TEMPLATE_REGISTRY[RecoveryActionType.CHECKOUT_DROP_OFF_RECOVERY],
+                    compliance_audit_reasoning=f"Checkout Drop-off Step 2/3: Email re-engagement with social proof sent for '{cart_items_str}'. Discount token '{discount_token}' included.",
+                    target_fsm_state="ACTION_SCHEDULED",
+                )
+                ComplianceEnforcer.validate(plan, event)
+                return plan
+            else:
+                # Step 3: Final SMS with expiring discount at T+48h
+                exec_time = now + timedelta(hours=48)
+                exec_time, delayed = self.adjust_for_trai_quiet_hours(exec_time)
+                plan = CandidateActionPlan(
+                    txn_id=event.txn_id,
+                    action_type=RecoveryActionType.CHECKOUT_DROP_OFF_RECOVERY,
+                    primary_channel=RecoveryChannel.SMS,
+                    fallback_channel=RecoveryChannel.WHATSAPP,
+                    scheduled_execution_time=exec_time,
+                    is_delayed_for_quiet_hours=delayed,
+                    dlt_stream=DLTStream.PROMOTIONAL,
+                    dlt_template_id=self.DLT_TEMPLATE_REGISTRY[RecoveryActionType.CHECKOUT_DROP_OFF_RECOVERY],
+                    compliance_audit_reasoning=f"Checkout Drop-off Step 3/3 (FINAL): Expiring discount SMS dispatched for '{cart_items_str}'. Code '{discount_token}' expires in 2h. No further automated outreach.",
+                    target_fsm_state="ACTION_SCHEDULED",
+                )
+                ComplianceEnforcer.validate(plan, event)
+                return plan
 
         # -------------------------------------------------------------
         # 7. SOFT LIQUIDITY & TECHNICAL RETRIES (Buckets 1, 2, 3, 4)

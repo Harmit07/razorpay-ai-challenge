@@ -1757,6 +1757,33 @@ body {
 }
 
 /* ==========================================================================
+   P1b: Decision Chain Badge Pills (Audit Explorer)
+   ========================================================================== */
+.decision-chain-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.decision-chain-arrow {
+  display: inline-block;
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1;
+  vertical-align: middle;
+  margin: 0 1px;
+}
+
+
+/* ==========================================================================
    Recovery Performance (Benchmark Comparison)
    ========================================================================== */
 
